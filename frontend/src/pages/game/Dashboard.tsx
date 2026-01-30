@@ -10,7 +10,7 @@ export default function Dashboard() {
     setupInterceptors(getToken);
 
     // Now this call will succeed because it has the Bearer token!
-    api.get("/game/state").then((res) => console.log("test" + res.data));
+    api.get("/game/state").then((res) => console.log(res.data));
   }, [getToken]);
 
   return (
