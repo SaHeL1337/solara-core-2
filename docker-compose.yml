@@ -2,10 +2,14 @@ services:
   backend:
     build: ./backend
     develop:
-      watch: 
-        - action: rebuild
+      watch:
+        - action: sync+restart
           path: ./backend
-          target: /app
+          target: /usr/src/app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./backend/package.json
     ports:
       - "3000:3000"
     environment:
@@ -22,16 +26,16 @@ services:
           path: ./frontend
           target: /usr/src/app
           ignore:
-          - node_modules/
+            - node_modules/
         - action: rebuild
-          path: ./frontend/package.json 
+          path: ./frontend/package.json
     ports:
       - "5173:5173"
     environment:
       - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
 
   db:
-    image: postgres:15 # Recommended: Use v15+ for better performance on ARM
+    image: postgres:15
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
