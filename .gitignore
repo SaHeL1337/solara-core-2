@@ -1,3 +1,6 @@
 data/certbot/conf/renewal/solara-core.de.conf
 frontend/node_modules
 backend/node_modules
+.env
+backend/.env
+frontend/.env

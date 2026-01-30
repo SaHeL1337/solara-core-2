@@ -12,6 +12,8 @@ services:
           path: ./backend/package.json
     ports:
       - "3000:3000"
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgres://user:password@db:5432/db
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
@@ -69,5 +71,15 @@ services:
     # Added entrypoint to keep the container from exiting immediately
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user@root.de
+      PGADMIN_DEFAULT_PASSWORD: password
+    ports:
+      - "127.0.0.1:8888:8888"
+    depends_on:
+      - db
 volumes:
   postgres_data:

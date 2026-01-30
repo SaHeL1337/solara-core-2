@@ -1,5 +1,22 @@
-import { ClerkExpressRequireAuth } from "@clerk/clerk-sdk-node";
+import { ClerkExpressWithAuth } from "@clerk/clerk-sdk-node";
+import { Request, Response, NextFunction } from "express";
 
-// This middleware validates the JWT signature locally using your Secret Key
-// It does NOT make a network call to Clerk for every request
-export const requireAuth = ClerkExpressRequireAuth();
+// This middleware validates the authentication state
+// If the user is not authenticated, it redirects them to the home page ("/")
+export const requireAuth = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  ClerkExpressWithAuth()(req, res, (err) => {
+    if (err) {
+      return next(err);
+    }
+
+    if (!(req as any).auth?.userId) {
+      return res.redirect("/");
+    }
+
+    next();
+  });
+};
