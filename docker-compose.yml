@@ -3,7 +3,7 @@ services:
     build: ./backend
     develop:
       watch:
-        - action: sync+restart
+        - action: sync
           path: ./backend
           target: /usr/src/app
           ignore:
@@ -44,6 +44,14 @@ services:
       - POSTGRES_DB=db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  test-db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=test_db
+    ports:
+      - "5433:5432"
 
   nginx:
     build: ./nginx
@@ -78,7 +86,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: user@root.de
       PGADMIN_DEFAULT_PASSWORD: password
     ports:
-      - "127.0.0.1:8888:8888"
+      - "8888:80"
     depends_on:
       - db
 volumes:

@@ -2,9 +2,9 @@ import express from "express";
 import { requireAuth } from "./middleware/auth";
 import { prisma } from "./lib/prisma";
 import { Webhook } from "svix";
+import buildingsRoutes from "../src/modules/buildings/buildings.routes";
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 app.use(
   express.json({
@@ -13,6 +13,8 @@ app.use(
     },
   }),
 );
+
+app.use("/api/buildings", buildingsRoutes);
 
 // Public route
 app.get("/api/health", (req, res) => {
@@ -30,10 +32,6 @@ app.get("/api/game/state", requireAuth, async (req, res) => {
     console.error("Error fetching game state:", error);
     res.status(500).json({ message: "Internal server error" });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
 });
 
 app.post("/api/webhooks/clerk", async (req, res) => {
@@ -66,3 +64,5 @@ app.post("/api/webhooks/clerk", async (req, res) => {
 
   res.status(200).json({ success: true });
 });
+
+export default app;

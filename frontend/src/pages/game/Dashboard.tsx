@@ -17,7 +17,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold">Planet Korsaon</h2>
+          <h2 className="text-3xl font-bold">Planet Korsaon 2</h2>
           <p className="text-slate-500">Sector 7-G | Alpha Colony</p>
         </div>
         <div className="text-right">
