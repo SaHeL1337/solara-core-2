@@ -8,6 +8,5 @@ const resetDb = async () => {
 };
 
 beforeEach(async () => {
-  console.log("Resetting Database");
   await resetDb();
 });

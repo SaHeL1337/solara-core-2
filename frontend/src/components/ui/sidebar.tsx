@@ -1,6 +1,7 @@
 import { Home, Pickaxe, Rocket, FlaskConical, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { SignOutButton } from "@clerk/clerk-react";
 
 export function Sidebar() {
   const location = useLocation();
@@ -39,6 +40,7 @@ export function Sidebar() {
             </Link>
           );
         })}
+        <SignOutButton />
       </nav>
       <div className="p-4 border-t border-slate-800">
         <div className="text-[10px] text-slate-500 uppercase tracking-widest text-center">

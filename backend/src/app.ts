@@ -3,6 +3,7 @@ import { requireAuth } from "./middleware/auth";
 import { prisma } from "./lib/prisma";
 import { Webhook } from "svix";
 import buildingsRoutes from "../src/modules/buildings/buildings.routes";
+import usersRoutes from "../src/modules/users/users.routes";
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(
 );
 
 app.use("/api/buildings", buildingsRoutes);
+app.use("/api/users", usersRoutes);
 
 // Public route
 app.get("/api/health", (req, res) => {
