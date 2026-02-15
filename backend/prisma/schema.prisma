@@ -9,8 +9,7 @@ datasource db {
 
 model User {
   id            String   @id
-  gold          Float    @default(500)
-  wood          Float    @default(500)
+  flux          Int    @default(500)
   lastUpdate    DateTime @default(now()) // Used for lazy resource calculation
   planets       Planet[]
 }
@@ -18,6 +17,9 @@ model User {
 model Planet {
   id          String            @id @default(uuid())
   ownerId     String
+  titanium        Int    @default(500)
+  silicate         Int    @default(500)
+  isotope         Int    @default(500)
   owner       User              @relation(fields: [ownerId], references: [id])
   name        String
   buildings   PlanetBuilding[]
@@ -28,7 +30,7 @@ model PlanetBuilding {
   id          String   @id @default(uuid())
   planetId    String
   planet      Planet   @relation(fields: [planetId], references: [id])
-  type        String   // e.g., "GOLD_MINE", "WOOD_MILL"
+  type        String   // e.g., "GOLD_MINE", "WOOD_MILL" from config
   level       Int      @default(0)
 
   @@unique([planetId, type])
@@ -41,7 +43,10 @@ model BuildingQueue {
   buildingType String
   targetLevel  Int
   status       QueueStatus @default(PENDING)
-  costGold     Int
+  costFlux     Int
+  costTitanium Int
+  costSilicate Int
+  costIsotope  Int
   durationSec  Int
   position     Int         // 0, 1, or 2 for your 3-slot limit
   startedAt    DateTime?

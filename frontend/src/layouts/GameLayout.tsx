@@ -1,8 +1,26 @@
+import { useEffect, useState } from "react";
 import { Outlet } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import { Sidebar } from "@/components/ui/sidebar";
 import ResourceHeader from "@/components/game/ResourceHeader";
+import { setupInterceptors } from "@/lib/api";
 
 export default function GameLayout() {
+  const { getToken } = useAuth();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    setupInterceptors(getToken);
+    setIsReady(true);
+  }, [getToken]);
+
+  if (!isReady)
+    return (
+      <div className="h-screen bg-slate-950 flex items-center justify-center text-white">
+        Loading...
+      </div>
+    );
+
   return (
     <div className="flex h-screen bg-slate-950 text-white">
       <Sidebar /> {/* Your game menu */}

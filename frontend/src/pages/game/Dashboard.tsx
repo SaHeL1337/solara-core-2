@@ -1,18 +1,7 @@
 import { useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
-import api, { setupInterceptors } from "@/lib/api";
+import api from "@/lib/api";
 
 export default function Dashboard() {
-  const { getToken } = useAuth();
-
-  useEffect(() => {
-    // Inject the token-grabber into our API client
-    setupInterceptors(getToken);
-
-    // Now this call will succeed because it has the Bearer token!
-    api.get("/game/state").then((res) => console.log(res.data));
-  }, [getToken]);
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-end">

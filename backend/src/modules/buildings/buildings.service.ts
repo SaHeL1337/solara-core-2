@@ -27,7 +27,10 @@ export const addToQueue = async (
   const targetLevel = (existingBuilding?.level || 0) + itemsInQueue + 1;
 
   // 3. Game Math: Calculate costs and time (Scales with level)
-  const costGold = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
+  const costFlux = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
+  const costTitanium = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
+  const costSilicate = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
+  const costIsotope = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
   const durationSec = 60 * targetLevel;
 
   // 4. Create the record
@@ -36,7 +39,10 @@ export const addToQueue = async (
       planetId,
       buildingType,
       targetLevel,
-      costGold,
+      costFlux,
+      costTitanium,
+      costSilicate,
+      costIsotope,
       durationSec,
       position: currentQueueCount,
       status: "PENDING", // Pulse worker will promote this later

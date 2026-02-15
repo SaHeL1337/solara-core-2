@@ -1,6 +1,7 @@
 import express from "express";
 import buildingsRoutes from "../src/modules/buildings/buildings.routes";
 import usersRoutes from "../src/modules/users/users.routes";
+import planetsRoutes from "../src/modules/planets/planets.routes";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(
 
 app.use("/api/buildings", buildingsRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/planets", planetsRoutes);
 
 // Public route
 app.get("/api/health", (req, res) => {

@@ -1,0 +1,42 @@
+{
+  "GOLD_MINE": {
+    "name": "Gold Mine",
+    "description": "Produces gold",
+    "cost": {
+      "gold": 100,
+      "wood": 100
+    },
+    "production": 10,
+    "buildTimeInSeconds": 60
+  },
+  "WOOD_MILL": {
+    "name": "Wood Mill",
+    "description": "Produces wood",
+    "cost": {
+      "gold": 100,
+      "wood": 100
+    },
+    "production": 10,
+    "buildTimeInSeconds": 60
+  },
+  "GAS_COLLECTOR": {
+    "name": "Gas Collector",
+    "description": "Produces gas",
+    "cost": {
+      "gold": 100,
+      "wood": 100
+    },
+    "production": 10,
+    "buildTimeInSeconds": 60
+  },
+  "RESEARCH_LAB": {
+    "name": "Research Lab",
+    "description": "Produces research",
+    "cost": {
+      "gold": 100,
+      "wood": 100
+    },
+    "production": 10,
+    "buildTimeInSeconds": 60
+  }
+}
