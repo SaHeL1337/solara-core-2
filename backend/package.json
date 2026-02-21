@@ -5,6 +5,7 @@
   "main": "/src/server.ts",
   "scripts": {
     "start": "ts-node src/server.ts",
+    "start:worker": "ts-node src/worker.ts",
     "test": "vitest",
     "test:watch": "vitest watch",
     "test:run": "vitest run"

@@ -184,6 +184,8 @@ export const addToQueue = async (
   });
 
   // 4. Create the record
+  const isFirstInQueue = currentQueueCount === 0;
+
   return await prisma.buildingQueue.create({
     data: {
       planetId,
@@ -195,7 +197,8 @@ export const addToQueue = async (
       costIsotope,
       durationSec,
       position: currentQueueCount,
-      status: "PENDING",
+      status: isFirstInQueue ? "BUILDING" : "PENDING",
+      ...(isFirstInQueue ? { startedAt: new Date() } : {}),
     },
   });
 };

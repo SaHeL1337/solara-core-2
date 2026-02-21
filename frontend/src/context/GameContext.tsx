@@ -11,6 +11,9 @@ import api from "@/lib/api";
 export interface Planet {
   id: string;
   name: string;
+  titanium: number;
+  silicate: number;
+  isotope: number;
   // Add other planet properties as needed (e.g., coordinates, type)
 }
 
@@ -41,14 +44,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const { data } = await api.get("/users/state");
       setUser(data);
 
-      // Select first planet by default if none selected or if current selection is invalid
+      // Update selected planet with fresh data without relying on stale closures
       if (data.planets && data.planets.length > 0) {
-        if (
-          !selectedPlanet ||
-          !data.planets.find((p: Planet) => p.id === selectedPlanet.id)
-        ) {
-          setSelectedPlanet(data.planets[0]);
-        }
+        setSelectedPlanet((prev) => {
+          if (!prev) return data.planets[0];
+          const updatedPlanet = data.planets.find(
+            (p: Planet) => p.id === prev.id,
+          );
+          return updatedPlanet || data.planets[0];
+        });
       }
     } catch (error) {
       console.error("Failed to fetch user state:", error);
@@ -59,6 +63,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchUser();
+    const interval = setInterval(() => {
+      fetchUser();
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const selectPlanet = (planetId: string) => {

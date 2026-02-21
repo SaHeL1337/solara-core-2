@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,8 +28,9 @@ export default function Buildings() {
     useState<APIBuildingMapping>({});
   const [queue, setQueue] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [now, setNow] = useState(Date.now());
 
-  const fetchBuildings = async () => {
+  const fetchBuildings = useCallback(async () => {
     if (!selectedPlanet) return;
     try {
       const { data } = await api.get(
@@ -40,7 +41,7 @@ export default function Buildings() {
     } catch (err) {
       console.error("Failed to fetch buildings", err);
     }
-  };
+  }, [selectedPlanet]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,7 +52,35 @@ export default function Buildings() {
     if (selectedPlanet) {
       loadData();
     }
-  }, [selectedPlanet]);
+  }, [selectedPlanet, fetchBuildings]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (queue.length > 0 && queue[0].startedAt) {
+      interval = setInterval(() => {
+        setNow(Date.now());
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [queue]);
+
+  useEffect(() => {
+    if (queue.length > 0 && queue[0].startedAt) {
+      const q = queue[0];
+      const start = new Date(q.startedAt).getTime();
+      const elapsedSec = Math.floor((now - start) / 1000);
+
+      if (
+        elapsedSec === q.durationSec ||
+        (elapsedSec > q.durationSec && elapsedSec % 5 === 0)
+      ) {
+        fetchBuildings();
+        refreshUser();
+      }
+    }
+  }, [now, queue, fetchBuildings, refreshUser]);
 
   const handleUpgrade = async (type: string) => {
     if (!selectedPlanet) return;
@@ -89,30 +118,68 @@ export default function Buildings() {
       {queue.length > 0 && (
         <div>
           <h2 className="text-xl font-bold text-slate-100 mb-4">
-            Construction Queue
+            Construction Queue ({queue.length}/3)
           </h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {queue.map((q, idx) => {
               const config = availableBuildings[q.buildingType];
               const buildingName = config ? config.name : q.buildingType;
+              const isFirst = idx === 0;
+
+              // Calculate progress for the active building
+              let progress = 0;
+              let timeRemaining = "";
+              if (isFirst && q.startedAt) {
+                const start = new Date(q.startedAt).getTime();
+                const elapsedSec = Math.floor((now - start) / 1000);
+                const totalSec = q.durationSec;
+                progress = Math.min(
+                  100,
+                  Math.max(0, (elapsedSec / totalSec) * 100),
+                );
+
+                const remSec = Math.max(0, totalSec - elapsedSec);
+                const m = Math.floor(remSec / 60);
+                const s = remSec % 60;
+                timeRemaining = `${m}m ${s}s`;
+              }
 
               return (
                 <Card
                   key={q.id || idx}
-                  className="bg-slate-800 border-slate-700 text-slate-200"
+                  className={`bg-slate-800 border-slate-700 text-slate-200 ${
+                    isFirst ? "md:col-span-2 lg:col-span-3" : ""
+                  }`}
                 >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-slate-100">
-                        {buildingName}
+                  <CardContent className="p-4 flex flex-col justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <div>
+                        <div className="font-semibold text-slate-100">
+                          {buildingName}
+                        </div>
+                        <div className="text-sm text-slate-400">
+                          Upgrade to Level {q.targetLevel}
+                        </div>
                       </div>
-                      <div className="text-sm text-slate-400">
-                        Upgrade to Level {q.targetLevel}
+                      <div className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 text-amber-400">
+                        {isFirst ? q.status : "WAITING"}
                       </div>
                     </div>
-                    <div className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 text-amber-400">
-                      {q.status}
-                    </div>
+
+                    {isFirst && q.startedAt && (
+                      <div className="mt-2 text-xs">
+                        <div className="flex justify-between text-slate-400 mb-1 font-mono">
+                          <span>{progress.toFixed(1)}%</span>
+                          <span>{timeRemaining}</span>
+                        </div>
+                        <div className="w-full bg-slate-900 rounded-full h-2 border border-slate-700 overflow-hidden">
+                          <div
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+                            style={{ width: `${progress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

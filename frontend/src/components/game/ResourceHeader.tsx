@@ -1,52 +1,33 @@
-import { useEffect, useState } from "react";
-import api from "@/lib/api";
 import { useGame } from "@/context/GameContext";
 
 export default function ResourceHeader() {
   const { user, selectedPlanet } = useGame();
 
-  const [planetResources, setPlanetResources] = useState([
-    { name: "Titanium", value: "0", color: "text-slate-400" },
-    { name: "Silicate", value: "0", color: "text-green-400" },
-    { name: "Isotope", value: "0", color: "text-blue-400" },
-  ]);
-
-  // Update User Resources from Context
-  const userResources = [
+  const planetResources = [
     {
-      name: "Flux",
-      value: user?.flux.toString() || "0",
-      color: "text-yellow-400",
+      name: "Titanium",
+      value: selectedPlanet?.titanium?.toString() || "0",
+      color: "text-slate-400",
+    },
+    {
+      name: "Silicate",
+      value: selectedPlanet?.silicate?.toString() || "0",
+      color: "text-green-400",
+    },
+    {
+      name: "Isotope",
+      value: selectedPlanet?.isotope?.toString() || "0",
+      color: "text-blue-400",
     },
   ];
 
-  useEffect(() => {
-    const fetchPlanetResources = async () => {
-      if (!selectedPlanet) return;
-
-      try {
-        const { data } = await api.get("/planets/" + selectedPlanet.id);
-        console.log("Fetched planet resources:", data);
-        if (data) {
-          setPlanetResources((prev) =>
-            prev.map((r) => {
-              if (r.name === "Titanium")
-                return { ...r, value: data.titanium.toString() };
-              if (r.name === "Silicate")
-                return { ...r, value: data.silicate.toString() };
-              if (r.name === "Isotope")
-                return { ...r, value: data.isotope.toString() };
-              return r;
-            }),
-          );
-        }
-      } catch (error) {
-        console.error("Failed to fetch planet resources:", error);
-      }
-    };
-
-    fetchPlanetResources();
-  }, [selectedPlanet]);
+  const userResources = [
+    {
+      name: "Flux",
+      value: user?.flux?.toString() || "0",
+      color: "text-yellow-400",
+    },
+  ];
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-6 justify-between sticky top-0 z-10">

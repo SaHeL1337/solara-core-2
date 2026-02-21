@@ -1,4 +1,24 @@
 services:
+  worker:
+    build: ./backend
+    command: npm run start:worker
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./backend
+          target: /usr/src/app
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./backend/package.json
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/db
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+    depends_on:
+      - db
+
   backend:
     build: ./backend
     develop:
