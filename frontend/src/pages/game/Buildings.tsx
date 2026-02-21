@@ -13,6 +13,8 @@ import api from "@/lib/api";
 type BuildingConfig = {
   name: string;
   description: string;
+  level: number;
+  targetLevel: number;
   cost: Record<string, number>;
   production: number;
   buildTimeInSeconds: number;
@@ -24,7 +26,6 @@ export default function Buildings() {
   const { selectedPlanet } = useGame();
   const [availableBuildings, setAvailableBuildings] =
     useState<APIBuildingMapping>({});
-  const [currentBuildings, setCurrentBuildings] = useState<any[]>([]);
   const [queue, setQueue] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -37,7 +38,6 @@ export default function Buildings() {
           `/buildings/buildings?planetId=${selectedPlanet.id}`,
         );
         setAvailableBuildings(data.data.available);
-        setCurrentBuildings(data.data.current);
         setQueue(data.data.queue);
       } catch (err) {
         console.error("Failed to fetch buildings", err);
@@ -61,11 +61,6 @@ export default function Buildings() {
     return <div className="p-4 text-slate-300">Loading buildings...</div>;
   }
 
-  const getBuildingLevel = (type: string) => {
-    const building = currentBuildings.find((b) => b.type === type);
-    return building ? building.level : 0;
-  };
-
   const getQueueStatus = (type: string) => {
     const queued = queue.find((q) => q.buildingType === type);
     return queued ? queued.status : null;
@@ -74,24 +69,24 @@ export default function Buildings() {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {Object.entries(availableBuildings).map(([type, config]) => {
-        const level = getBuildingLevel(type);
         const status = getQueueStatus(type);
 
-        // Calculate cost for next level
-        const targetLevel = level + 1;
+        const level = config.level;
+        const targetLevel = config.targetLevel;
         const targetCosts: React.ReactNode[] = [];
 
-        // Use config costs as base or calculate dynamically like backend depending on design
-        Object.entries(config.cost).forEach(([resource, baseCost]) => {
-          targetCosts.push(
-            <span key={resource} className="capitalize">
-              {Math.floor(baseCost * Math.pow(1.5, targetLevel - 1))} {resource}
-            </span>,
-          );
+        // Cost is already evaluated dynamically for the target level by the backend
+        Object.entries(config.cost).forEach(([resource, costValue]) => {
+          if (costValue > 0) {
+            targetCosts.push(
+              <span key={resource} className="capitalize">
+                {costValue} {resource}
+              </span>,
+            );
+          }
         });
 
-        // Backend seems to calculate duration using: 60 * targetLevel
-        const buildTime = 60 * targetLevel;
+        const buildTime = config.buildTimeInSeconds;
 
         return (
           <Card
@@ -113,7 +108,7 @@ export default function Buildings() {
                   <div className="flex flex-col">
                     <span className="text-slate-500 text-xs">Production</span>
                     <span className="text-emerald-400 font-medium">
-                      +{config.production * targetLevel}/hr
+                      +{config.production}/hr
                     </span>
                   </div>
                 )}

@@ -3,9 +3,9 @@
     "name": "Titanium Mine",
     "description": "Produces titanium",
     "cost": {
-      "titanium": "100 ^ (level - 1)",
-      "silicate": "100 ^ (level - 1)",
-      "isotope": "100 ^ (level - 1)"
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)"
     },
     "production": "12 * level",
     "buildTimeInSeconds": "60 * level"
@@ -14,9 +14,9 @@
     "name": "Silicate Mine",
     "description": "Produces silicate",
     "cost": {
-      "titanium": "100 ^ (level - 1)",
-      "silicate": "100 ^ (level - 1)",
-      "isotope": "100 ^ (level - 1)"
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)"
     },
     "production": "10 * level",
     "buildTimeInSeconds": "60 * level"
@@ -25,9 +25,9 @@
     "name": "Isotope Collector",
     "description": "Produces isotope",
     "cost": {
-      "titanium": "100 ^ (level - 1)",
-      "silicate": "100 ^ (level - 1)",
-      "isotope": "100 ^ (level - 1)"
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)"
     },
     "production": "10 * level",
     "buildTimeInSeconds": "60 * level"
@@ -36,9 +36,9 @@
     "name": "Shipyard",
     "description": "Produces ships",
     "cost": {
-      "titanium": "100 ^ (level - 1)",
-      "silicate": "100 ^ (level - 1)",
-      "isotope": "100 ^ (level - 1)"
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)"
     },
     "production": 0,
     "buildTimeInSeconds": "60 * level"
@@ -47,9 +47,9 @@
     "name": "Research Lab",
     "description": "Produces research",
     "cost": {
-      "titanium": "100 ^ (level - 1)",
-      "silicate": "100 ^ (level - 1)",
-      "isotope": "100 ^ (level - 1)"
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)"
     },
     "production": 0,
     "buildTimeInSeconds": "60 * level"

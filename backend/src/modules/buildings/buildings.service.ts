@@ -1,6 +1,22 @@
 import { prisma } from "../../lib/prisma";
 import availableBuildings from "../../config/buildings.json";
 
+export const evaluateFormula = (
+  formula: string | number,
+  level: number,
+): number => {
+  if (typeof formula === "number") return formula;
+  const jsFormula = formula.replace(/\^/g, "**");
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = new Function("level", `return ${jsFormula};`)(level);
+    return isNaN(result) ? 0 : Math.floor(result);
+  } catch (e) {
+    console.error("Formula evaluation failed:", formula, e);
+    return 0;
+  }
+};
+
 export const getBuildings = async (userId: string, planetId: string) => {
   // Verify planet ownership
   const planet = await prisma.planet.findUnique({
@@ -22,13 +38,50 @@ export const getBuildings = async (userId: string, planetId: string) => {
     orderBy: { position: "asc" },
   });
 
-  // calculate cost per building per level (replace "level" in building cost function with current building level)
+  // Combine available buildings with current level state
+  const buildingsMap = Object.entries(availableBuildings).reduce(
+    (acc, [type, config]) => {
+      const currentBuilding = currentBuildings.find((b) => b.type === type);
+      const itemsInQueue = queue.filter((q) => q.buildingType === type).length;
+
+      const currentLevel = currentBuilding?.level || 0;
+      const targetLevel = currentLevel + itemsInQueue + 1;
+
+      acc[type] = {
+        ...config,
+        type,
+        level: currentLevel,
+        targetLevel,
+        cost: {
+          titanium: config.cost.titanium
+            ? evaluateFormula(config.cost.titanium, targetLevel)
+            : 0,
+          silicate: config.cost.silicate
+            ? evaluateFormula(config.cost.silicate, targetLevel)
+            : 0,
+          isotope: config.cost.isotope
+            ? evaluateFormula(config.cost.isotope, targetLevel)
+            : 0,
+          flux: (config.cost as any).flux
+            ? evaluateFormula((config.cost as any).flux, targetLevel)
+            : 0,
+        },
+        production: evaluateFormula(config.production, targetLevel),
+        buildTimeInSeconds: evaluateFormula(
+          config.buildTimeInSeconds,
+          targetLevel,
+        ),
+      };
+
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
 
   return {
-    available: availableBuildings,
+    available: buildingsMap,
     current: currentBuildings,
     queue,
-    production,
   };
 };
 
@@ -51,19 +104,33 @@ export const addToQueue = async (
     where: { planetId_type: { planetId, type: buildingType } },
   });
 
-  // Logic: Check existing level + items already in queue for this type
   const itemsInQueue = await prisma.buildingQueue.count({
     where: { planetId, buildingType, status: { in: ["PENDING", "BUILDING"] } },
   });
 
   const targetLevel = (existingBuilding?.level || 0) + itemsInQueue + 1;
 
-  // 3. Game Math: Calculate costs and time (Scales with level)
-  const costFlux = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
-  const costTitanium = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
-  const costSilicate = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
-  const costIsotope = Math.floor(100 * Math.pow(1.5, targetLevel - 1));
-  const durationSec = 60 * targetLevel;
+  // 3. Game Math: Calculate costs and time (Scales with level) using buildings.json
+  const config = (availableBuildings as any)[buildingType];
+  if (!config) {
+    throw new Error("Invalid building type");
+  }
+
+  const costFlux = (config.cost as any).flux
+    ? evaluateFormula((config.cost as any).flux, targetLevel)
+    : 0;
+  const costTitanium = config.cost.titanium
+    ? evaluateFormula(config.cost.titanium, targetLevel)
+    : 0;
+  const costSilicate = config.cost.silicate
+    ? evaluateFormula(config.cost.silicate, targetLevel)
+    : 0;
+  const costIsotope = config.cost.isotope
+    ? evaluateFormula(config.cost.isotope, targetLevel)
+    : 0;
+  const durationSec = config.buildTimeInSeconds
+    ? evaluateFormula(config.buildTimeInSeconds, targetLevel)
+    : 60 * targetLevel;
 
   // 4. Create the record
   return await prisma.buildingQueue.create({
