@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { useGame } from "@/context/GameContext";
 
 export default function ResourceHeader() {
-  const [userResources, setUserResources] = useState([
-    { name: "Flux", value: "0", color: "text-yellow-400" },
-  ]);
+  const { user, selectedPlanet } = useGame();
 
   const [planetResources, setPlanetResources] = useState([
     { name: "Titanium", value: "0", color: "text-slate-400" },
@@ -12,32 +11,22 @@ export default function ResourceHeader() {
     { name: "Isotope", value: "0", color: "text-blue-400" },
   ]);
 
-  const planetId = "53493142-34b6-4fd5-9b26-81b1db01c321";
+  // Update User Resources from Context
+  const userResources = [
+    {
+      name: "Flux",
+      value: user?.flux.toString() || "0",
+      color: "text-yellow-400",
+    },
+  ];
 
   useEffect(() => {
-    const fetchUserResources = async () => {
-      try {
-        const { data } = await api.get("/users/state");
-        console.log("Fetched resources:", data);
-        if (data) {
-          console.log(data);
-          setUserResources((prev) =>
-            prev.map((r) => {
-              if (r.name === "Flux")
-                return { ...r, value: data.flux.toString() };
-              return r;
-            }),
-          );
-        }
-      } catch (error) {
-        console.error("Failed to fetch resources:", error);
-      }
-    };
-
     const fetchPlanetResources = async () => {
+      if (!selectedPlanet) return;
+
       try {
-        const { data } = await api.get("/planets/" + planetId);
-        console.log("Fetched resources:", data);
+        const { data } = await api.get("/planets/" + selectedPlanet.id);
+        console.log("Fetched planet resources:", data);
         if (data) {
           setPlanetResources((prev) =>
             prev.map((r) => {
@@ -52,13 +41,12 @@ export default function ResourceHeader() {
           );
         }
       } catch (error) {
-        console.error("Failed to fetch resources:", error);
+        console.error("Failed to fetch planet resources:", error);
       }
     };
 
-    fetchUserResources();
     fetchPlanetResources();
-  }, []);
+  }, [selectedPlanet]);
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-6 justify-between sticky top-0 z-10">

@@ -2,6 +2,7 @@ import { Home, Pickaxe, Rocket, FlaskConical, Settings } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/clerk-react";
+import { PlanetSelector } from "@/components/game/PlanetSelector";
 
 export function Sidebar() {
   const location = useLocation();
@@ -16,10 +17,11 @@ export function Sidebar() {
 
   return (
     <div className="w-64 border-r border-slate-800 bg-slate-900 flex flex-col">
-      <div className="p-6">
+      <div className="p-6 space-y-4">
         <h1 className="text-3xl font-bold tracking-tighter text-blue-500">
           SOLARA<span className="text-slate-400">CORE</span>
         </h1>
+        <PlanetSelector />
       </div>
       <nav className="flex-1 px-4 space-y-2">
         {menuItems.map((item) => {
