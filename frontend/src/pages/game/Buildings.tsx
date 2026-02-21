@@ -23,31 +23,49 @@ type BuildingConfig = {
 type APIBuildingMapping = Record<string, BuildingConfig>;
 
 export default function Buildings() {
-  const { selectedPlanet } = useGame();
+  const { selectedPlanet, refreshUser } = useGame();
   const [availableBuildings, setAvailableBuildings] =
     useState<APIBuildingMapping>({});
   const [queue, setQueue] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchBuildings = async () => {
-      if (!selectedPlanet) return;
-      setIsLoading(true);
-      try {
-        const { data } = await api.get(
-          `/buildings/buildings?planetId=${selectedPlanet.id}`,
-        );
-        setAvailableBuildings(data.data.available);
-        setQueue(data.data.queue);
-      } catch (err) {
-        console.error("Failed to fetch buildings", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchBuildings = async () => {
+    if (!selectedPlanet) return;
+    try {
+      const { data } = await api.get(
+        `/buildings/buildings?planetId=${selectedPlanet.id}`,
+      );
+      setAvailableBuildings(data.data.available);
+      setQueue(data.data.queue);
+    } catch (err) {
+      console.error("Failed to fetch buildings", err);
+    }
+  };
 
-    fetchBuildings();
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await fetchBuildings();
+      setIsLoading(false);
+    };
+    if (selectedPlanet) {
+      loadData();
+    }
   }, [selectedPlanet]);
+
+  const handleUpgrade = async (type: string) => {
+    if (!selectedPlanet) return;
+    try {
+      await api.post("/buildings/queue", {
+        planetId: selectedPlanet.id,
+        buildingType: type,
+      });
+      await fetchBuildings();
+      await refreshUser();
+    } catch (err) {
+      console.error("Failed to queue building upgrade", err);
+    }
+  };
 
   if (!selectedPlanet) {
     return (
@@ -67,79 +85,123 @@ export default function Buildings() {
   };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {Object.entries(availableBuildings).map(([type, config]) => {
-        const status = getQueueStatus(type);
+    <div className="space-y-8">
+      {queue.length > 0 && (
+        <div>
+          <h2 className="text-xl font-bold text-slate-100 mb-4">
+            Construction Queue
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {queue.map((q, idx) => {
+              const config = availableBuildings[q.buildingType];
+              const buildingName = config ? config.name : q.buildingType;
 
-        const level = config.level;
-        const targetLevel = config.targetLevel;
-        const targetCosts: React.ReactNode[] = [];
-
-        // Cost is already evaluated dynamically for the target level by the backend
-        Object.entries(config.cost).forEach(([resource, costValue]) => {
-          if (costValue > 0) {
-            targetCosts.push(
-              <span key={resource} className="capitalize">
-                {costValue} {resource}
-              </span>,
-            );
-          }
-        });
-
-        const buildTime = config.buildTimeInSeconds;
-
-        return (
-          <Card
-            key={type}
-            className="bg-slate-900 border-slate-800 text-slate-100 flex flex-col"
-          >
-            <CardHeader className="pb-2">
-              <CardTitle>{config.name}</CardTitle>
-              <CardDescription className="text-blue-400 font-semibold mb-1">
-                Level {level}
-              </CardDescription>
-              <div className="text-xs text-slate-400 italic">
-                {config.description}
-              </div>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-1 mt-2">
-              <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
-                {config.production > 0 && (
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Production</span>
-                    <span className="text-emerald-400 font-medium">
-                      +{config.production}/hr
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex flex-col">
-                  <span className="text-slate-500 text-xs">Build Time</span>
-                  <span>{buildTime}s</span>
-                </div>
-              </div>
-
-              <div className="flex flex-col text-sm mb-4 space-y-1">
-                <span className="text-slate-500 text-xs text-center mb-1 border-b border-slate-800 pb-1">
-                  Upgrade Cost (Lv {targetLevel})
-                </span>
-                <div className="flex justify-evenly text-amber-200/90 font-mono text-xs mt-1">
-                  {targetCosts.length > 0 ? targetCosts : <span>Free</span>}
-                </div>
-              </div>
-
-              <div className="mt-auto pt-2">
-                <Button
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all"
-                  disabled={!!status}
+              return (
+                <Card
+                  key={q.id || idx}
+                  className="bg-slate-800 border-slate-700 text-slate-200"
                 >
-                  {status ? `Upgrading (${status})` : "Upgrade"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-slate-100">
+                        {buildingName}
+                      </div>
+                      <div className="text-sm text-slate-400">
+                        Upgrade to Level {q.targetLevel}
+                      </div>
+                    </div>
+                    <div className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 text-amber-400">
+                      {q.status}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h2 className="text-xl font-bold text-slate-100 mb-4">
+          Available Buildings
+        </h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(availableBuildings).map(([type, config]) => {
+            const status = getQueueStatus(type);
+
+            const level = config.level;
+            const targetLevel = config.targetLevel;
+            const targetCosts: React.ReactNode[] = [];
+
+            // Cost is already evaluated dynamically for the target level by the backend
+            Object.entries(config.cost).forEach(([resource, costValue]) => {
+              if (costValue > 0) {
+                targetCosts.push(
+                  <span key={resource} className="capitalize">
+                    {costValue} {resource}
+                  </span>,
+                );
+              }
+            });
+
+            const buildTime = config.buildTimeInSeconds;
+
+            return (
+              <Card
+                key={type}
+                className="bg-slate-900 border-slate-800 text-slate-100 flex flex-col"
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle>{config.name}</CardTitle>
+                  <CardDescription className="text-blue-400 font-semibold mb-1">
+                    Level {level}
+                  </CardDescription>
+                  <div className="text-xs text-slate-400 italic">
+                    {config.description}
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-1 mt-2">
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
+                    {config.production > 0 && (
+                      <div className="flex flex-col">
+                        <span className="text-slate-500 text-xs">
+                          Production
+                        </span>
+                        <span className="text-emerald-400 font-medium">
+                          +{config.production}/hr
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col">
+                      <span className="text-slate-500 text-xs">Build Time</span>
+                      <span>{buildTime}s</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col text-sm mb-4 space-y-1">
+                    <span className="text-slate-500 text-xs text-center mb-1 border-b border-slate-800 pb-1">
+                      Upgrade Cost (Lv {targetLevel})
+                    </span>
+                    <div className="flex justify-evenly text-amber-200/90 font-mono text-xs mt-1">
+                      {targetCosts.length > 0 ? targetCosts : <span>Free</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-auto pt-2">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all"
+                      onClick={() => handleUpgrade(type)}
+                    >
+                      {status ? `Upgrading (${status})` : "Upgrade"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import availableBuildings from "../../config/buildings.json";
+import { AppPortalCapabilitySerializer } from "svix/dist/models/appPortalCapability";
 
 export const evaluateFormula = (
   formula: string | number,
@@ -132,6 +133,56 @@ export const addToQueue = async (
     ? evaluateFormula(config.buildTimeInSeconds, targetLevel)
     : 60 * targetLevel;
 
+  //remove resources from the planet if there is enough
+  const planet = await prisma.planet.findUnique({
+    where: { id: planetId },
+  });
+
+  if (!planet) {
+    throw new Error("Planet not found");
+  }
+
+  if (planet.titanium < costTitanium) {
+    throw new Error("Not enough titanium");
+  }
+
+  if (planet.silicate < costSilicate) {
+    throw new Error("Not enough silicate");
+  }
+
+  if (planet.isotope < costIsotope) {
+    throw new Error("Not enough isotope");
+  }
+
+  const player = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!player) {
+    throw new Error("Player not found");
+  }
+
+  //check if user has enough flux
+  if (player.flux < costFlux) {
+    throw new Error("Not enough flux");
+  }
+
+  await prisma.planet.update({
+    where: { id: planetId },
+    data: {
+      titanium: planet.titanium - costTitanium,
+      silicate: planet.silicate - costSilicate,
+      isotope: planet.isotope - costIsotope,
+    },
+  });
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      flux: player.flux - costFlux,
+    },
+  });
+
   // 4. Create the record
   return await prisma.buildingQueue.create({
     data: {
@@ -144,7 +195,7 @@ export const addToQueue = async (
       costIsotope,
       durationSec,
       position: currentQueueCount,
-      status: "PENDING", // Pulse worker will promote this later
+      status: "PENDING",
     },
   });
 };
