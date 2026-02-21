@@ -109,12 +109,15 @@ export default function Buildings() {
             </CardHeader>
             <CardContent className="flex flex-col flex-1 mt-2">
               <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
-                <div className="flex flex-col">
-                  <span className="text-slate-500 text-xs">Production</span>
-                  <span className="text-emerald-400 font-medium">
-                    +{config.production * targetLevel}/hr
-                  </span>
-                </div>
+                {config.production > 0 && (
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 text-xs">Production</span>
+                    <span className="text-emerald-400 font-medium">
+                      +{config.production * targetLevel}/hr
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex flex-col">
                   <span className="text-slate-500 text-xs">Build Time</span>
                   <span>{buildTime}s</span>

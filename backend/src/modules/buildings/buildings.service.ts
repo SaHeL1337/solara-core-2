@@ -22,10 +22,13 @@ export const getBuildings = async (userId: string, planetId: string) => {
     orderBy: { position: "asc" },
   });
 
+  // calculate cost per building per level (replace "level" in building cost function with current building level)
+
   return {
     available: availableBuildings,
     current: currentBuildings,
     queue,
+    production,
   };
 };
 

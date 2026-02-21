@@ -1,41 +1,57 @@
 {
-  "GOLD_MINE": {
-    "name": "Gold Mine",
-    "description": "Produces gold",
+  "TITANIUM_MINE": {
+    "name": "Titanium Mine",
+    "description": "Produces titanium",
     "cost": {
-      "gold": 100,
-      "wood": 100
+      "titanium": "100 ^ (level - 1)",
+      "silicate": "100 ^ (level - 1)",
+      "isotope": "100 ^ (level - 1)"
     },
-    "production": 12,
-    "buildTimeInSeconds": 60
+    "production": "12 * level",
+    "buildTimeInSeconds": "60 * level"
   },
-  "WOOD_MILL": {
-    "name": "Wood Mill",
-    "description": "Produces wood",
+  "SILICATE_MINE": {
+    "name": "Silicate Mine",
+    "description": "Produces silicate",
     "cost": {
-      "gold": 100,
-      "wood": 100
+      "titanium": "100 ^ (level - 1)",
+      "silicate": "100 ^ (level - 1)",
+      "isotope": "100 ^ (level - 1)"
     },
-    "production": 10,
-    "buildTimeInSeconds": 60
+    "production": "10 * level",
+    "buildTimeInSeconds": "60 * level"
   },
-  "GAS_COLLECTOR": {
-    "name": "Gas Collector",
-    "description": "Produces gas",
+  "ISOTOPE_COLLECTOR": {
+    "name": "Isotope Collector",
+    "description": "Produces isotope",
     "cost": {
-      "gold": 100,
-      "wood": 100
+      "titanium": "100 ^ (level - 1)",
+      "silicate": "100 ^ (level - 1)",
+      "isotope": "100 ^ (level - 1)"
     },
-    "production": 10,
-    "buildTimeInSeconds": 60
+    "production": "10 * level",
+    "buildTimeInSeconds": "60 * level"
+  },
+  "SHIPYARD": {
+    "name": "Shipyard",
+    "description": "Produces ships",
+    "cost": {
+      "titanium": "100 ^ (level - 1)",
+      "silicate": "100 ^ (level - 1)",
+      "isotope": "100 ^ (level - 1)"
+    },
+    "production": 0,
+    "buildTimeInSeconds": "60 * level"
   },
   "RESEARCH_LAB": {
     "name": "Research Lab",
     "description": "Produces research",
     "cost": {
-      "gold": 100,
-      "wood": 100
+      "titanium": "100 ^ (level - 1)",
+      "silicate": "100 ^ (level - 1)",
+      "isotope": "100 ^ (level - 1)"
     },
-    "buildTimeInSeconds": 60
+    "production": 0,
+    "buildTimeInSeconds": "60 * level"
   }
 }

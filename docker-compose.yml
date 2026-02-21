@@ -3,7 +3,7 @@ services:
     build: ./backend
     develop:
       watch:
-        - action: sync
+        - action: sync+restart
           path: ./backend
           target: /usr/src/app
           ignore:
