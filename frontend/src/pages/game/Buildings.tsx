@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,9 +29,10 @@ export default function Buildings() {
   const [queue, setQueue] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const prevPlanetId = useRef<string | null>(null);
 
   const fetchBuildings = useCallback(async () => {
-    if (!selectedPlanet) return;
+    if (!selectedPlanet?.id) return;
     try {
       const { data } = await api.get(
         `/buildings/buildings?planetId=${selectedPlanet.id}`,
@@ -41,18 +42,27 @@ export default function Buildings() {
     } catch (err) {
       console.error("Failed to fetch buildings", err);
     }
-  }, [selectedPlanet]);
+  }, [selectedPlanet?.id]);
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
+      // Only show the loading screen if we actually changed planets
+      if (prevPlanetId.current !== selectedPlanet?.id) {
+        setIsLoading(true);
+        setAvailableBuildings({});
+      }
+
       await fetchBuildings();
+
       setIsLoading(false);
+      if (selectedPlanet?.id) {
+        prevPlanetId.current = selectedPlanet.id;
+      }
     };
     if (selectedPlanet) {
       loadData();
     }
-  }, [selectedPlanet, fetchBuildings]);
+  }, [selectedPlanet?.id, fetchBuildings]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;

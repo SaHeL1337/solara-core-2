@@ -20,6 +20,7 @@ model Planet {
   titanium        Int    @default(500)
   silicate         Int    @default(500)
   isotope         Int    @default(500)
+  updatedAt     DateTime @default(now())
   owner       User              @relation(fields: [ownerId], references: [id])
   name        String
   buildings   PlanetBuilding[]
@@ -48,8 +49,9 @@ model BuildingQueue {
   costSilicate Int
   costIsotope  Int
   durationSec  Int
-  position     Int         // 0, 1, or 2 for your 3-slot limit
+  position     Int        
   startedAt    DateTime?
+  finishedAt   DateTime
 }
 
 enum QueueStatus {

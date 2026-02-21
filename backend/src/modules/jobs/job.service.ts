@@ -9,25 +9,13 @@ export class JobService {
       const completedQueues = await prisma.buildingQueue.findMany({
         where: {
           status: QueueStatus.BUILDING,
-          startedAt: {
-            // startedAt + duration <= now => now >= startedAt + duration
-            // This requires a raw query or calculating in memory since Prisma doesn't
-            // support `now() >= startedAt + durationSec * 1000` easily in pure Prisma API.
-            // We can fetch all "BUILDING" items and filter them in TS, or use raw.
-            // Given the polling nature, we'll fetch BUILDING items and filter.
-            not: null,
+          finishedAt: {
+            lte: new Date(),
           },
         },
       });
 
-      const now = new Date();
-      const readyToComplete = completedQueues.filter((q: any) => {
-        if (!q.startedAt) return false;
-        const endTime = new Date(q.startedAt.getTime() + q.durationSec * 1000);
-        return now >= endTime;
-      });
-
-      for (const queueItem of readyToComplete) {
+      for (const queueItem of completedQueues) {
         await this.completeBuildingQueue(queueItem.id);
       }
     } catch (error) {

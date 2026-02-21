@@ -67,6 +67,8 @@ describe("GET /api/buildings/buildings", () => {
         costIsotope: 100,
         durationSec: 60,
         position: 0,
+        startedAt: new Date(),
+        finishedAt: new Date(),
         status: "PENDING",
       },
     });

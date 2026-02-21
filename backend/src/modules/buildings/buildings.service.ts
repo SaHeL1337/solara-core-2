@@ -1,21 +1,45 @@
 import { prisma } from "../../lib/prisma";
-import availableBuildings from "../../config/buildings.json";
-import { AppPortalCapabilitySerializer } from "svix/dist/models/appPortalCapability";
+import {
+  getBuildingConfig,
+  getCalcAvailableBuildings,
+  CalculatedBuildingInfo,
+} from "./buildings.config.service";
 
-export const evaluateFormula = (
-  formula: string | number,
-  level: number,
-): number => {
-  if (typeof formula === "number") return formula;
-  const jsFormula = formula.replace(/\^/g, "**");
-  try {
-    // eslint-disable-next-line no-new-func
-    const result = new Function("level", `return ${jsFormula};`)(level);
-    return isNaN(result) ? 0 : Math.floor(result);
-  } catch (e) {
-    console.error("Formula evaluation failed:", formula, e);
-    return 0;
+import { ResourceService } from "../resources/resourc.service";
+
+export const calculateAvailableBuildings = async (
+  planetId: string,
+  currentBuildings?: any[],
+  queue?: any[],
+): Promise<Record<string, CalculatedBuildingInfo>> => {
+  if (!currentBuildings) {
+    currentBuildings = await prisma.planetBuilding.findMany({
+      where: { planetId },
+    });
   }
+  if (!queue) {
+    queue = await prisma.buildingQueue.findMany({
+      where: { planetId, status: { in: ["PENDING", "BUILDING"] } },
+    });
+  }
+
+  const currentLevelsMap = currentBuildings.reduce(
+    (acc, b) => {
+      acc[b.type] = b.level;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  const inQueueCountMap = queue.reduce(
+    (acc, q) => {
+      acc[q.buildingType] = (acc[q.buildingType] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  return getCalcAvailableBuildings(currentLevelsMap, inQueueCountMap);
 };
 
 export const getBuildings = async (userId: string, planetId: string) => {
@@ -39,48 +63,18 @@ export const getBuildings = async (userId: string, planetId: string) => {
     orderBy: { position: "asc" },
   });
 
-  // Combine available buildings with current level state
-  const buildingsMap = Object.entries(availableBuildings).reduce(
-    (acc, [type, config]) => {
-      const currentBuilding = currentBuildings.find((b) => b.type === type);
-      const itemsInQueue = queue.filter((q) => q.buildingType === type).length;
+  // update planet resources
+  await ResourceService.sync(planetId);
 
-      const currentLevel = currentBuilding?.level || 0;
-      const targetLevel = currentLevel + itemsInQueue + 1;
-
-      acc[type] = {
-        ...config,
-        type,
-        level: currentLevel,
-        targetLevel,
-        cost: {
-          titanium: config.cost.titanium
-            ? evaluateFormula(config.cost.titanium, targetLevel)
-            : 0,
-          silicate: config.cost.silicate
-            ? evaluateFormula(config.cost.silicate, targetLevel)
-            : 0,
-          isotope: config.cost.isotope
-            ? evaluateFormula(config.cost.isotope, targetLevel)
-            : 0,
-          flux: (config.cost as any).flux
-            ? evaluateFormula((config.cost as any).flux, targetLevel)
-            : 0,
-        },
-        production: evaluateFormula(config.production, targetLevel),
-        buildTimeInSeconds: evaluateFormula(
-          config.buildTimeInSeconds,
-          targetLevel,
-        ),
-      };
-
-      return acc;
-    },
-    {} as Record<string, any>,
+  // Combine available buildings with current level state using config service
+  const available = await calculateAvailableBuildings(
+    planetId,
+    currentBuildings,
+    queue,
   );
 
   return {
-    available: buildingsMap,
+    available,
     current: currentBuildings,
     queue,
   };
@@ -111,27 +105,14 @@ export const addToQueue = async (
 
   const targetLevel = (existingBuilding?.level || 0) + itemsInQueue + 1;
 
-  // 3. Game Math: Calculate costs and time (Scales with level) using buildings.json
-  const config = (availableBuildings as any)[buildingType];
-  if (!config) {
-    throw new Error("Invalid building type");
-  }
+  // 3. Game Math: Calculate costs and time (Scales with level) using config service
+  const calcConfig = getBuildingConfig(buildingType, targetLevel);
 
-  const costFlux = (config.cost as any).flux
-    ? evaluateFormula((config.cost as any).flux, targetLevel)
-    : 0;
-  const costTitanium = config.cost.titanium
-    ? evaluateFormula(config.cost.titanium, targetLevel)
-    : 0;
-  const costSilicate = config.cost.silicate
-    ? evaluateFormula(config.cost.silicate, targetLevel)
-    : 0;
-  const costIsotope = config.cost.isotope
-    ? evaluateFormula(config.cost.isotope, targetLevel)
-    : 0;
-  const durationSec = config.buildTimeInSeconds
-    ? evaluateFormula(config.buildTimeInSeconds, targetLevel)
-    : 60 * targetLevel;
+  const costFlux = calcConfig.cost.flux;
+  const costTitanium = calcConfig.cost.titanium;
+  const costSilicate = calcConfig.cost.silicate;
+  const costIsotope = calcConfig.cost.isotope;
+  const durationSec = calcConfig.buildTimeInSeconds;
 
   //remove resources from the planet if there is enough
   const planet = await prisma.planet.findUnique({
@@ -199,6 +180,7 @@ export const addToQueue = async (
       position: currentQueueCount,
       status: isFirstInQueue ? "BUILDING" : "PENDING",
       ...(isFirstInQueue ? { startedAt: new Date() } : {}),
+      finishedAt: new Date(Date.now() + durationSec * 1000),
     },
   });
 };
