@@ -27,3 +27,27 @@ export const queueBuilding = async (req: Request, res: Response) => {
     return res.status(400).json({ error: error.message });
   }
 };
+
+export const getBuildings = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const { planetId } = authReq.query;
+    const userId = authReq.auth.userId;
+
+    if (!planetId) {
+      return res.status(400).json({ error: "Planet ID is required" });
+    }
+
+    const buildings = await buildingsService.getBuildings(
+      userId,
+      planetId as string,
+    );
+
+    return res.status(200).json({
+      message: "Buildings fetched successfully",
+      data: buildings,
+    });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message });
+  }
+};

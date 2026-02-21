@@ -1,4 +1,33 @@
 import { prisma } from "../../lib/prisma";
+import availableBuildings from "../../config/buildings.json";
+
+export const getBuildings = async (userId: string, planetId: string) => {
+  // Verify planet ownership
+  const planet = await prisma.planet.findUnique({
+    where: { id: planetId },
+  });
+
+  if (!planet || planet.ownerId !== userId) {
+    throw new Error("Planet not found or not owned by user");
+  }
+
+  // Fetch current buildings
+  const currentBuildings = await prisma.planetBuilding.findMany({
+    where: { planetId },
+  });
+
+  // Fetch active queue
+  const queue = await prisma.buildingQueue.findMany({
+    where: { planetId, status: { in: ["PENDING", "BUILDING"] } },
+    orderBy: { position: "asc" },
+  });
+
+  return {
+    available: availableBuildings,
+    current: currentBuildings,
+    queue,
+  };
+};
 
 export const addToQueue = async (
   userId: string,

@@ -3,7 +3,12 @@ import { beforeAll, beforeEach } from "vitest";
 
 // Clear all tables to ensure test isolation
 const resetDb = async () => {
-  const transactions = [prisma.user.deleteMany()];
+  const transactions = [
+    prisma.buildingQueue.deleteMany(),
+    prisma.planetBuilding.deleteMany(),
+    prisma.planet.deleteMany(),
+    prisma.user.deleteMany(),
+  ];
   await prisma.$transaction(transactions);
 };
 

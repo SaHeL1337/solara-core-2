@@ -6,7 +6,7 @@
       "gold": 100,
       "wood": 100
     },
-    "production": 10,
+    "production": 12,
     "buildTimeInSeconds": 60
   },
   "WOOD_MILL": {
@@ -36,7 +36,6 @@
       "gold": 100,
       "wood": 100
     },
-    "production": 10,
     "buildTimeInSeconds": 60
   }
 }

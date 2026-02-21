@@ -1,6 +1,3 @@
-import { useEffect } from "react";
-import api from "@/lib/api";
-
 export default function Dashboard() {
   return (
     <div className="space-y-6">
