@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import { Toaster } from "sonner";
 
 // Layouts
 import PublicLayout from "@/layouts/PublicLayout";
@@ -13,6 +14,7 @@ import Buildings from "@/pages/game/Buildings";
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="bottom-right" richColors theme="dark" />
       <Routes>
         {/* --- PUBLIC SECTION --- */}
         <Route element={<PublicLayout />}>
