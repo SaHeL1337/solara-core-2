@@ -50,7 +50,7 @@ export class ResourceService {
   private static calculateRate(buildings: any[], type: string): number {
     const level = buildings.find((b) => b.type === type)?.level || 0;
     if (level === 0) return 0;
-    const config = getBuildingConfig(type, level);
+    const config = getBuildingConfig(type, level, level);
     return config.production / 3600; // per second
   }
 }

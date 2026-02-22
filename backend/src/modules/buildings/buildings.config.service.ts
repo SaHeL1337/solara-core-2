@@ -15,6 +15,7 @@ export interface CalculatedBuildingInfo {
   targetLevel: number;
   cost: BuildingCostInfo;
   production: number;
+  productionIncrease: number;
   buildTimeInSeconds: number;
 }
 
@@ -36,6 +37,7 @@ export const evaluateFormula = (
 
 export const getBuildingConfig = (
   buildingType: string,
+  currentLevel: number,
   targetLevel: number,
 ): Omit<CalculatedBuildingInfo, "level" | "targetLevel"> => {
   const config = (availableBuildings as Record<string, any>)[buildingType];
@@ -61,7 +63,10 @@ export const getBuildingConfig = (
         ? evaluateFormula(config.cost.flux, targetLevel)
         : 0,
     },
-    production: evaluateFormula(config.production || 0, targetLevel),
+    production: evaluateFormula(config.production || 0, currentLevel),
+    productionIncrease:
+      evaluateFormula(config.production || 0, targetLevel) -
+      evaluateFormula(config.production || 0, targetLevel - 1),
     buildTimeInSeconds: config.buildTimeInSeconds
       ? evaluateFormula(config.buildTimeInSeconds, targetLevel)
       : Math.max(60 * targetLevel, 60),
@@ -80,7 +85,7 @@ export const getCalcAvailableBuildings = (
     const targetLevel = currentLevel + itemsInQueue + 1;
 
     buildingsMap[type] = {
-      ...getBuildingConfig(type, targetLevel),
+      ...getBuildingConfig(type, currentLevel, targetLevel),
       level: currentLevel,
       targetLevel,
     };

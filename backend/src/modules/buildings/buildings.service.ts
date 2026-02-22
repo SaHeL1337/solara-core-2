@@ -103,10 +103,11 @@ export const addToQueue = async (
     where: { planetId, buildingType, status: { in: ["PENDING", "BUILDING"] } },
   });
 
-  const targetLevel = (existingBuilding?.level || 0) + itemsInQueue + 1;
+  const currentLevel = (existingBuilding?.level || 0) 
+  const targetLevel = currentLevel + itemsInQueue + 1;
 
   // 3. Game Math: Calculate costs and time (Scales with level) using config service
-  const calcConfig = getBuildingConfig(buildingType, targetLevel);
+  const calcConfig = getBuildingConfig(buildingType, currentLevel, targetLevel);
 
   const costFlux = calcConfig.cost.flux;
   const costTitanium = calcConfig.cost.titanium;

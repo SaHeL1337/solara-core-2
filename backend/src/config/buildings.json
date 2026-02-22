@@ -7,7 +7,7 @@
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)"
     },
-    "production": "12 * level",
+    "production": "1200 * level",
     "buildTimeInSeconds": "60 * level"
   },
   "SILICATE_MINE": {
@@ -18,7 +18,7 @@
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)"
     },
-    "production": "10 * level",
+    "production": "1000 * level",
     "buildTimeInSeconds": "60 * level"
   },
   "ISOTOPE_COLLECTOR": {
@@ -29,7 +29,7 @@
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)"
     },
-    "production": "10 * level",
+    "production": "1000 * level",
     "buildTimeInSeconds": "60 * level"
   },
   "SHIPYARD": {

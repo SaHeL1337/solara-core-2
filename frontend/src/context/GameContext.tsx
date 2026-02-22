@@ -65,7 +65,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     fetchUser();
     const interval = setInterval(() => {
       fetchUser();
-    }, 6000);
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 

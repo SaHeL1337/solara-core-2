@@ -17,7 +17,8 @@ type BuildingConfig = {
   targetLevel: number;
   cost: Record<string, number>;
   production: number;
-  buildTimeInSeconds: number;
+  productionIncrease: number;
+  uildTimeInSeconds: number; 
 };
 
 type APIBuildingMapping = Record<string, BuildingConfig>;
@@ -39,6 +40,7 @@ export default function Buildings() {
       );
       setAvailableBuildings(data.data.available);
       setQueue(data.data.queue);
+      console.log(data.data)
     } catch (err) {
       console.error("Failed to fetch buildings", err);
     }
@@ -243,9 +245,9 @@ export default function Buildings() {
                       <div className="flex flex-col">
                         <span className="text-slate-500 text-xs">
                           Production
-                        </span>
+                        </span> 
                         <span className="text-emerald-400 font-medium">
-                          +{config.production}/hr
+                          +{config.productionIncrease}/hr
                         </span>
                       </div>
                     )}
