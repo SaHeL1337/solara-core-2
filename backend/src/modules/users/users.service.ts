@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { ResourceService } from "../resources/resourc.service";
 
 // function to create the user
 
@@ -35,10 +36,29 @@ export const createUser = async (id: string) => {
 };
 
 export const getUserState = async (userId: string) => {
-  return await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      planets: true,
+      planets: {
+        include: {
+          buildings: true,
+        },
+      },
     },
   });
+
+  if (!user) return null;
+
+  const planetsWithProduction = user.planets.map((planet) => {
+    const { buildings, ...rest } = planet;
+    return {
+      ...rest,
+      production: ResourceService.getProductionRates(buildings),
+    };
+  });
+
+  return {
+    ...user,
+    planets: planetsWithProduction,
+  };
 };

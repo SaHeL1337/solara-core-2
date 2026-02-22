@@ -47,6 +47,14 @@ export class ResourceService {
     });
   }
 
+  public static getProductionRates(buildings: any[]) {
+    return {
+      titanium: this.calculateRate(buildings, "TITANIUM_MINE") * 3600,
+      silicate: this.calculateRate(buildings, "SILICATE_MINE") * 3600,
+      isotope: this.calculateRate(buildings, "ISOTOPE_COLLECTOR") * 3600,
+    };
+  }
+
   private static calculateRate(buildings: any[], type: string): number {
     const level = buildings.find((b) => b.type === type)?.level || 0;
     if (level === 0) return 0;

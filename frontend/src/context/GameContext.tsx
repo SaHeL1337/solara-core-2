@@ -14,6 +14,11 @@ export interface Planet {
   titanium: number;
   silicate: number;
   isotope: number;
+  production: {
+    titanium: number;
+    silicate: number;
+    isotope: number;
+  };
   // Add other planet properties as needed (e.g., coordinates, type)
 }
 

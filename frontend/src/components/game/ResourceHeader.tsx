@@ -1,22 +1,53 @@
+import { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 
 export default function ResourceHeader() {
   const { user, selectedPlanet } = useGame();
 
+  const [visualResources, setVisualResources] = useState({
+    titanium: 0,
+    silicate: 0,
+    isotope: 0,
+  });
+
+  useEffect(() => {
+    if (selectedPlanet) {
+      setVisualResources({
+        titanium: selectedPlanet.titanium,
+        silicate: selectedPlanet.silicate,
+        isotope: selectedPlanet.isotope,
+      });
+    }
+  }, [selectedPlanet]);
+
+  useEffect(() => {
+    if (!selectedPlanet || !selectedPlanet.production) return;
+
+    const interval = setInterval(() => {
+      setVisualResources((prev) => ({
+        titanium: prev.titanium + selectedPlanet.production.titanium / 3600,
+        silicate: prev.silicate + selectedPlanet.production.silicate / 3600,
+        isotope: prev.isotope + selectedPlanet.production.isotope / 3600,
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [selectedPlanet]);
+
   const planetResources = [
     {
       name: "Titanium",
-      value: selectedPlanet?.titanium?.toString() || "0",
+      value: Math.floor(visualResources.titanium).toString(),
       color: "text-slate-400",
     },
     {
       name: "Silicate",
-      value: selectedPlanet?.silicate?.toString() || "0",
+      value: Math.floor(visualResources.silicate).toString(),
       color: "text-green-400",
     },
     {
       name: "Isotope",
-      value: selectedPlanet?.isotope?.toString() || "0",
+      value: Math.floor(visualResources.isotope).toString(),
       color: "text-blue-400",
     },
   ];
