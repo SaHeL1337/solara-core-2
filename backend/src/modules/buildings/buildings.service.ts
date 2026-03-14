@@ -103,7 +103,7 @@ export const addToQueue = async (
     where: { planetId, buildingType, status: { in: ["PENDING", "BUILDING"] } },
   });
 
-  const currentLevel = (existingBuilding?.level || 0) 
+  const currentLevel = existingBuilding?.level || 0;
   const targetLevel = currentLevel + itemsInQueue + 1;
 
   // 3. Game Math: Calculate costs and time (Scales with level) using config service
@@ -115,24 +115,27 @@ export const addToQueue = async (
   const costIsotope = calcConfig.cost.isotope;
   const durationSec = calcConfig.buildTimeInSeconds;
 
-  //remove resources from the planet if there is enough
-  const planet = await prisma.planet.findUnique({
+  //remove resources from the spaceObject if there is enough
+  const planetObj = await prisma.planet.findUnique({
     where: { id: planetId },
+    include: { spaceObject: true },
   });
 
-  if (!planet) {
-    throw new Error("Planet not found");
+  if (!planetObj || !planetObj.spaceObject) {
+    throw new Error("Planet or SpaceObject not found");
   }
 
-  if (planet.titanium < costTitanium) {
+  const spaceObject = planetObj.spaceObject;
+
+  if (spaceObject.titanium < costTitanium) {
     throw new Error("Not enough titanium");
   }
 
-  if (planet.silicate < costSilicate) {
+  if (spaceObject.silicate < costSilicate) {
     throw new Error("Not enough silicate");
   }
 
-  if (planet.isotope < costIsotope) {
+  if (spaceObject.isotope < costIsotope) {
     throw new Error("Not enough isotope");
   }
 
@@ -149,12 +152,12 @@ export const addToQueue = async (
     throw new Error("Not enough flux");
   }
 
-  await prisma.planet.update({
+  await prisma.spaceObject.update({
     where: { id: planetId },
     data: {
-      titanium: planet.titanium - costTitanium,
-      silicate: planet.silicate - costSilicate,
-      isotope: planet.isotope - costIsotope,
+      titanium: spaceObject.titanium - costTitanium,
+      silicate: spaceObject.silicate - costSilicate,
+      isotope: spaceObject.isotope - costIsotope,
     },
   });
 

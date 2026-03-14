@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { Sidebar } from "@/components/ui/sidebar";
 import ResourceHeader from "@/components/game/ResourceHeader";
@@ -9,6 +9,7 @@ import { GameProvider } from "@/context/GameContext";
 export default function GameLayout() {
   const { getToken } = useAuth();
   const [isReady, setIsReady] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     setupInterceptors(getToken);
@@ -28,7 +29,9 @@ export default function GameLayout() {
         <Sidebar /> {/* Your game menu */}
         <div className="flex-1 flex flex-col">
           <ResourceHeader /> {/* Your Gold, Wood, etc. */}
-          <main className="flex-1 p-6 overflow-auto">
+          <main
+            className={`flex-1 overflow-auto ${location.pathname === "/map" ? "p-0 overflow-hidden" : "p-6"}`}
+          >
             <Outlet /> {/* This is where Dashboard or Buildings will appear */}
           </main>
         </div>

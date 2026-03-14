@@ -7,6 +7,7 @@ const resetDb = async () => {
     prisma.buildingQueue.deleteMany(),
     prisma.planetBuilding.deleteMany(),
     prisma.planet.deleteMany(),
+    prisma.spaceObject.deleteMany(),
     prisma.user.deleteMany(),
   ];
   await prisma.$transaction(transactions);

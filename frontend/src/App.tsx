@@ -10,6 +10,9 @@ import GameLayout from "@/layouts/GameLayout";
 import LandingPage from "@/pages/LandingPage";
 import Dashboard from "@/pages/game/Dashboard";
 import Buildings from "@/pages/game/Buildings";
+import Shipyard from "@/pages/game/Shipyard";
+import Fleet from "@/pages/game/Fleet";
+import Map from "@/pages/game/Map";
 
 export default function App() {
   return (
@@ -33,6 +36,9 @@ export default function App() {
         >
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/buildings" element={<Buildings />} />
+          <Route path="/shipyard" element={<Shipyard />} />
+          <Route path="/fleet" element={<Fleet />} />
+          <Route path="/map" element={<Map />} />
           {/* If they try to go to /game, redirect to /dashboard */}
           <Route path="/game" element={<Navigate to="/dashboard" replace />} />
         </Route>

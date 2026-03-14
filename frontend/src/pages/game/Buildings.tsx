@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { formatNumber } from "@/lib/utils";
 import {
   Card,
   CardHeader,
@@ -18,7 +19,7 @@ type BuildingConfig = {
   cost: Record<string, number>;
   production: number;
   productionIncrease: number;
-  uildTimeInSeconds: number; 
+  buildTimeInSeconds: number;
 };
 
 type APIBuildingMapping = Record<string, BuildingConfig>;
@@ -40,7 +41,7 @@ export default function Buildings() {
       );
       setAvailableBuildings(data.data.available);
       setQueue(data.data.queue);
-      console.log(data.data)
+      console.log(data.data);
     } catch (err) {
       console.error("Failed to fetch buildings", err);
     }
@@ -217,7 +218,7 @@ export default function Buildings() {
               if (costValue > 0) {
                 targetCosts.push(
                   <span key={resource} className="capitalize">
-                    {costValue} {resource}
+                    {formatNumber(costValue)} {resource}
                   </span>,
                 );
               }
@@ -245,16 +246,16 @@ export default function Buildings() {
                       <div className="flex flex-col">
                         <span className="text-slate-500 text-xs">
                           Production
-                        </span> 
+                        </span>
                         <span className="text-emerald-400 font-medium">
-                          +{config.productionIncrease}/hr
+                          +{formatNumber(config.productionIncrease)}/hr
                         </span>
                       </div>
                     )}
 
                     <div className="flex flex-col">
                       <span className="text-slate-500 text-xs">Build Time</span>
-                      <span>{buildTime}s</span>
+                      <span>{formatNumber(buildTime)}s</span>
                     </div>
                   </div>
 

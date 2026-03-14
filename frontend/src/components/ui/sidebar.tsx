@@ -1,4 +1,4 @@
-import { Home, Pickaxe, Rocket, FlaskConical, Settings } from "lucide-react";
+import { Home, Pickaxe, Rocket, Map } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/clerk-react";
@@ -10,9 +10,9 @@ export function Sidebar() {
   const menuItems = [
     { icon: Home, label: "Overview", path: "/dashboard" },
     { icon: Pickaxe, label: "Buildings", path: "/buildings" },
+    { icon: Rocket, label: "Shipyard", path: "/shipyard" },
     { icon: Rocket, label: "Fleet", path: "/fleet" },
-    { icon: FlaskConical, label: "Research", path: "/research" },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { icon: Map, label: "Map", path: "/map" },
   ];
 
   return (

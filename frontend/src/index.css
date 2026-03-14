@@ -179,3 +179,17 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Leaflet Custom Popup Styling */
+.custom-map-popup .leaflet-popup-content-wrapper {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+.custom-map-popup .leaflet-popup-content {
+  margin: 0;
+}
+.custom-map-popup .leaflet-popup-tip-container {
+  display: none;
+}

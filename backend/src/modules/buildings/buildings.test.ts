@@ -40,18 +40,30 @@ describe("GET /api/buildings/buildings", () => {
       data: { id: "test-user-buildings", flux: 1000 },
     });
 
-    const planet = await prisma.planet.create({
+    const planetSpaceObj = await prisma.spaceObject.create({
       data: {
-        id: "test-planet-buildings",
-        ownerId: user.id,
+        type: "PLANET",
         name: "Test Planet",
+        titanium: 1000,
+        silicate: 1000,
+        isotope: 1000,
+        planet: {
+          create: {
+            ownerId: user.id,
+          },
+        },
+      },
+      include: {
+        planet: true,
       },
     });
+
+    const planet = planetSpaceObj.planet!;
 
     await prisma.planetBuilding.create({
       data: {
         planetId: planet.id,
-        type: "GOLD_MINE",
+        type: "TITANIUM_MINE",
         level: 1,
       },
     });
@@ -59,7 +71,7 @@ describe("GET /api/buildings/buildings", () => {
     await prisma.buildingQueue.create({
       data: {
         planetId: planet.id,
-        buildingType: "WOOD_MILL",
+        buildingType: "SILICATE_MINE",
         targetLevel: 1,
         costFlux: 100,
         costTitanium: 100,
@@ -88,16 +100,16 @@ describe("GET /api/buildings/buildings", () => {
 
     // Check available config
     expect(available).toBeDefined();
-    expect(available.GOLD_MINE).toBeDefined();
+    expect(available.TITANIUM_MINE).toBeDefined();
 
     // Check current buildings
     expect(current).toHaveLength(1);
-    expect(current[0].type).toBe("GOLD_MINE");
+    expect(current[0].type).toBe("TITANIUM_MINE");
     expect(current[0].level).toBe(1);
 
     // Check queued buildings
     expect(queue).toHaveLength(1);
-    expect(queue[0].buildingType).toBe("WOOD_MILL");
+    expect(queue[0].buildingType).toBe("SILICATE_MINE");
     expect(queue[0].status).toBe("PENDING");
   });
 });

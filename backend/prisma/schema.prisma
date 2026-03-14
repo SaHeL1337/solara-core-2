@@ -14,15 +14,29 @@ model User {
   planets       Planet[]
 }
 
-model Planet {
-  id          String            @id @default(uuid())
-  ownerId     String
-  titanium        Int    @default(500)
-  silicate         Int    @default(500)
-  isotope         Int    @default(500)
-  updatedAt     DateTime @default(now())
-  owner       User              @relation(fields: [ownerId], references: [id])
+enum SpaceObjectType {
+  PLANET
+  ASTEROID
+  BLACK_HOLE
+}
+
+model SpaceObject {
+  id          String          @id @default(uuid())
+  type        SpaceObjectType
   name        String
+  titanium    Int             @default(500)
+  silicate    Int             @default(500)
+  isotope     Int             @default(500)
+  updatedAt   DateTime        @default(now())
+
+  planet      Planet?
+}
+
+model Planet {
+  id          String            @id
+  spaceObject SpaceObject       @relation(fields: [id], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       User              @relation(fields: [ownerId], references: [id])
   buildings   PlanetBuilding[]
   queue       BuildingQueue[]
 }

@@ -1,5 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { ResourceService } from "../resources/resourc.service";
+import { SpaceObjectType } from "../../generated/prisma/enums";
 
 // function to create the user
 
@@ -18,13 +19,18 @@ export const createUser = async (id: string) => {
     throw new Error("Failed to create user");
   }
 
-  var planet = await prisma.planet.create({
+  var planet = await prisma.spaceObject.create({
     data: {
-      ownerId: id,
+      type: SpaceObjectType.PLANET,
       name: "Planet " + id.substring(id.length - 5),
       titanium: 1000,
       silicate: 1000,
       isotope: 1000,
+      planet: {
+        create: {
+          ownerId: id,
+        },
+      },
     },
   });
 
@@ -42,6 +48,7 @@ export const getUserState = async (userId: string) => {
       planets: {
         include: {
           buildings: true,
+          spaceObject: true,
         },
       },
     },
@@ -50,9 +57,10 @@ export const getUserState = async (userId: string) => {
   if (!user) return null;
 
   const planetsWithProduction = user.planets.map((planet) => {
-    const { buildings, ...rest } = planet;
+    const { buildings, spaceObject, ...rest } = planet;
     return {
       ...rest,
+      ...spaceObject, // spread SpaceObject fields to match previous Planet shape
       production: ResourceService.getProductionRates(buildings),
     };
   });

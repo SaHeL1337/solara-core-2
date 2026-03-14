@@ -8,15 +8,20 @@ export class ResourceService {
    */
   static async sync(planetId: string) {
     return await prisma.$transaction(async (tx) => {
-      // 1. Fetch planet with building levels
+      // 1. Fetch planet with building levels and its space object
       const planet = await tx.planet.findUniqueOrThrow({
         where: { id: planetId },
-        include: { buildings: true },
+        include: {
+          buildings: true,
+          spaceObject: true,
+        },
       });
+
+      if (!planet.spaceObject) return planet;
 
       const now = new Date();
       const secondsElapsed =
-        (now.getTime() - planet.updatedAt.getTime()) / 1000;
+        (now.getTime() - planet.spaceObject.updatedAt.getTime()) / 1000;
 
       if (secondsElapsed <= 0) return planet;
 
@@ -34,8 +39,8 @@ export class ResourceService {
         "ISOTOPE_COLLECTOR",
       );
 
-      // 3. Update the planet
-      return await tx.planet.update({
+      // 3. Update the space object
+      const updatedSpaceObject = await tx.spaceObject.update({
         where: { id: planetId },
         data: {
           titanium: { increment: titaniumRate * secondsElapsed },
@@ -44,6 +49,11 @@ export class ResourceService {
           updatedAt: now,
         },
       });
+
+      return {
+        ...planet,
+        spaceObject: updatedSpaceObject,
+      };
     });
   }
 

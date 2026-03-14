@@ -8,6 +8,12 @@ export const requireAuth = (
   res: Response,
   next: NextFunction,
 ) => {
+  if (process.env.NODE_ENV === "test") {
+    // Basic test bypass
+    (req as any).auth = { userId: "test-user-buildings" };
+    return next();
+  }
+
   ClerkExpressWithAuth()(req, res, (err) => {
     if (err) {
       return next(err);

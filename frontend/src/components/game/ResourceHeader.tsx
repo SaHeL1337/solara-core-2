@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
+import { formatNumber } from "@/lib/utils";
 
 export default function ResourceHeader() {
   const { user, selectedPlanet } = useGame();
@@ -37,17 +38,17 @@ export default function ResourceHeader() {
   const planetResources = [
     {
       name: "Titanium",
-      value: Math.floor(visualResources.titanium).toString(),
+      value: formatNumber(Math.floor(visualResources.titanium)),
       color: "text-slate-400",
     },
     {
       name: "Silicate",
-      value: Math.floor(visualResources.silicate).toString(),
+      value: formatNumber(Math.floor(visualResources.silicate)),
       color: "text-green-400",
     },
     {
       name: "Isotope",
-      value: Math.floor(visualResources.isotope).toString(),
+      value: formatNumber(Math.floor(visualResources.isotope)),
       color: "text-blue-400",
     },
   ];
@@ -55,7 +56,7 @@ export default function ResourceHeader() {
   const userResources = [
     {
       name: "Flux",
-      value: user?.flux?.toString() || "0",
+      value: user?.flux != null ? formatNumber(user.flux) : "0",
       color: "text-yellow-400",
     },
   ];
