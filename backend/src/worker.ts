@@ -9,7 +9,13 @@ async function startWorker() {
     try {
       await jobService.processCompletedBuildings();
     } catch (error) {
-      console.error("Worker error:", error);
+      console.error("Worker error processing buildings:", error);
+    }
+
+    try {
+      await jobService.processCompletedShips();
+    } catch (error) {
+      console.error("Worker error processing ships:", error);
     }
   }, POLL_INTERVAL_MS);
 }

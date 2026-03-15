@@ -1,0 +1,54 @@
+{
+  "FIGHTER": {
+    "name": "Fighter",
+    "description": "Light combat ship for planetary defense and basic attacks.",
+    "cost": {
+      "titanium": 5,
+      "silicate": 2,
+      "isotope": 0
+    },
+    "requirements": {
+      "SHIPYARD": 1
+    },
+    "buildTimeInSeconds": "120 * (10 / (9 + shipyardLevel))"
+  },
+  "CRUISER": {
+    "name": "Cruiser",
+    "description": "Heavy combat ship.",
+    "cost": {
+      "titanium": 2000,
+      "silicate": 1000,
+      "isotope": 200
+    },
+    "requirements": {
+      "SHIPYARD": 4
+    },
+    "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))"
+  },
+  "BATTLESHIP": {
+    "name": "Battleship",
+    "description": "Massive capital ship that can dominate space battles.",
+    "cost": {
+      "titanium": 8000,
+      "silicate": 4000,
+      "isotope": 1000
+    },
+    "requirements": {
+      "SHIPYARD": 7
+    },
+    "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))"
+  },
+  "COLONY_SHIP": {
+    "name": "Colony Ship",
+    "description": "Allows settling on new planets.",
+    "cost": {
+      "titanium": 10000,
+      "silicate": 10000,
+      "isotope": 5000
+    },
+    "requirements": {
+      "SHIPYARD": 3
+    },
+    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))"
+  }
+}

@@ -43,6 +43,34 @@ model Planet {
   owner       User              @relation(fields: [ownerId], references: [id])
   buildings   PlanetBuilding[]
   queue       BuildingQueue[]
+  ships       PlanetShip[]
+  shipQueue   ShipQueue[]
+}
+
+model PlanetShip {
+  id          String   @id @default(uuid())
+  planetId    String
+  planet      Planet   @relation(fields: [planetId], references: [id])
+  type        String
+  count       Int      @default(0)
+
+  @@unique([planetId, type])
+}
+
+model ShipQueue {
+  id             String      @id @default(uuid())
+  planetId       String
+  planet         Planet      @relation(fields: [planetId], references: [id])
+  shipType       String
+  quantity       Int
+  status         QueueStatus @default(PENDING)
+  costTitanium   Int
+  costSilicate   Int
+  costIsotope    Int
+  durationSec    Int         // duration per 1 ship
+  position       Int        
+  startedAt      DateTime?   // when the current *individual* ship started building
+  completedCount Int         @default(0)
 }
 
 model PlanetBuilding {
