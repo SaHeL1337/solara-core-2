@@ -27,9 +27,13 @@ model SpaceObject {
   titanium    Int             @default(500)
   silicate    Int             @default(500)
   isotope     Int             @default(500)
+  x           Int             @default(0)
+  y           Int             @default(0)
   updatedAt   DateTime        @default(now())
 
   planet      Planet?
+
+  @@index([x, y])
 }
 
 model Planet {

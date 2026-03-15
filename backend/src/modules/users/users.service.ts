@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { ResourceService } from "../resources/resourc.service";
 import { SpaceObjectType } from "../../generated/prisma/enums";
+import { generateMapObjects } from "../map/map.generator";
 
 // function to create the user
 
@@ -19,16 +20,33 @@ export const createUser = async (id: string) => {
     throw new Error("Failed to create user");
   }
 
-  var planet = await prisma.spaceObject.create({
+  // Find existing objects to determine spawn
+  const existingObjects = await prisma.spaceObject.findMany({
+    select: { x: true, y: true },
+  });
+  const isFirstPlayer = existingObjects.length === 0;
+
+  const newObjects = generateMapObjects(existingObjects, isFirstPlayer, id);
+
+  // The very first object in the array is the player's new planet
+  const playerPlanetData = newObjects.shift();
+
+  if (!playerPlanetData) {
+    throw new Error("Failed to generate player planet data");
+  }
+
+  const planet = await prisma.spaceObject.create({
     data: {
       type: SpaceObjectType.PLANET,
-      name: "Planet " + id.substring(id.length - 5),
-      titanium: 1000,
-      silicate: 1000,
-      isotope: 1000,
+      name: playerPlanetData.name,
+      titanium: playerPlanetData.titanium,
+      silicate: playerPlanetData.silicate,
+      isotope: playerPlanetData.isotope,
+      x: playerPlanetData.x,
+      y: playerPlanetData.y,
       planet: {
         create: {
-          ownerId: id,
+          ownerId: id, // user ID
         },
       },
     },
@@ -36,6 +54,13 @@ export const createUser = async (id: string) => {
 
   if (!planet) {
     throw new Error("Failed to create planet");
+  }
+
+  // Bulk insert the remaining 9,999 objects
+  if (newObjects.length > 0) {
+    await prisma.spaceObject.createMany({
+      data: newObjects,
+    });
   }
 
   return user;

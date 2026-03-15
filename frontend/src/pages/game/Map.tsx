@@ -26,53 +26,7 @@ const PLANET_COLORS = [
   "text-emerald-400",
 ];
 
-function generateRandomObjects(count: number): SpaceObject[] {
-  const objects: SpaceObject[] = [];
-  const types: ("planet" | "asteroid" | "anomaly")[] = [
-    "planet",
-    "planet",
-    "planet",
-    "asteroid",
-    "asteroid",
-    "anomaly",
-  ];
-
-  for (let i = 0; i < count; i++) {
-    const type = types[Math.floor(Math.random() * types.length)];
-    // cluster them closely in a +/- 50 range (100x100 grid)
-    const x = Math.floor(Math.random() * 100) - 50;
-    const y = Math.floor(Math.random() * 100) - 50;
-    const size =
-      type === "planet" ? Math.random() * 2 + 1 : Math.random() * 1.5 + 0.5;
-    const color =
-      type === "planet"
-        ? PLANET_COLORS[Math.floor(Math.random() * PLANET_COLORS.length)]
-        : type === "asteroid"
-          ? "text-stone-500"
-          : "text-purple-500";
-
-    const isPlayerOwned = type === "planet" && Math.random() > 0.8;
-
-    // 30% chance a planet has the custom SVG
-    const useSvg = type === "planet" && Math.random() > 0.7;
-
-    objects.push({
-      id: `obj-${i}`,
-      type,
-      name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${Math.floor(Math.random() * 999)}`,
-      x,
-      y,
-      color,
-      size,
-      owner: isPlayerOwned ? "Player" : undefined,
-      imageUrl: useSvg ? "/assets/map/solara_prime.svg" : undefined,
-    });
-  }
-  return objects;
-}
-
-// Generate ~50 objects in a condensed area
-const DUMMY_OBJECTS: SpaceObject[] = generateRandomObjects(600);
+// Removed DUMMY_OBJECTS logic
 
 function createIconMarkup(obj: SpaceObject, currentZoom: number) {
   // Scale factor: base 2 exponent of zoom.
@@ -101,7 +55,7 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number) {
 
   return renderToString(
     <div
-      className={`flex items-center justify-center ${obj.color} drop-shadow-xl animate-pulse`}
+      className={`flex items-center justify-center ${obj.color} drop-shadow-xl`}
       style={{ width: `${scaledSize}px`, height: `${scaledSize}px` }}
     >
       <IconComponent
@@ -165,24 +119,78 @@ function SpaceGridLayer() {
   return null;
 }
 
-function MapEventsHandler({ onZoom }: { onZoom: (z: number) => void }) {
+// Removed redundant MapEventsHandler
+
+import api from "@/lib/api";
+
+function MapDataFetcher({
+  setZoom,
+  setMapObjects,
+  setLoadingMap,
+}: {
+  setZoom: (z: number) => void;
+  setMapObjects: (objs: SpaceObject[]) => void;
+  setLoadingMap: (l: boolean) => void;
+}) {
   const map = useMapEvents({
-    zoomend: () => {
-      onZoom(map.getZoom());
+    moveend: async () => {
+      setZoom(map.getZoom());
+      const bounds = map.getBounds();
+      const minX = Math.floor(bounds.getWest() - 10);
+      const maxX = Math.ceil(bounds.getEast() + 10);
+      const minY = Math.floor(bounds.getSouth() - 10);
+      const maxY = Math.ceil(bounds.getNorth() + 10);
+
+      try {
+        setLoadingMap(true);
+        const { data } = await api.get(
+          `/map/objects?minX=${minX}&maxX=${maxX}&minY=${minY}&maxY=${maxY}`,
+        );
+
+        // Map backend formatted objects to add colors/details missing in backend
+        const parsed = (data.data as SpaceObject[]).map((obj) => ({
+          ...obj,
+          color:
+            obj.type === "planet"
+              ? PLANET_COLORS[Math.abs(obj.name.length) % PLANET_COLORS.length]
+              : obj.type === "asteroid"
+                ? "text-stone-500"
+                : "text-purple-500",
+          imageUrl:
+            obj.type === "planet" && obj.name.includes("Prime")
+              ? "/assets/map/solara_prime.svg"
+              : undefined,
+        }));
+
+        setMapObjects(parsed);
+      } catch (error) {
+        console.error("Failed to fetch map chunk:", error);
+      } finally {
+        setLoadingMap(false);
+      }
     },
+    zoomend: () => setZoom(map.getZoom()),
   });
+
+  // Run once on mount to get initial view
+  useEffect(() => {
+    map.fire("moveend");
+  }, [map]);
+
   return null;
 }
 
 export default function Map() {
   const [zoom, setZoom] = useState(0);
+  const [mapObjects, setMapObjects] = useState<SpaceObject[]>([]);
+  const [loadingMap, setLoadingMap] = useState(false);
 
   // Custom icons memoized
   const icons = useMemo(() => {
     const iconMap: Record<string, L.DivIcon> = {};
     const scale = Math.max(0.1, Math.abs(Math.pow(2, zoom)));
 
-    DUMMY_OBJECTS.forEach((obj) => {
+    mapObjects.forEach((obj) => {
       const scaledSize = obj.size * BASE_ICON_SIZE * scale;
       iconMap[obj.id] = L.divIcon({
         html: createIconMarkup(obj, zoom),
@@ -192,26 +200,35 @@ export default function Map() {
       });
     });
     return iconMap;
-  }, [zoom]);
+  }, [zoom, mapObjects]);
 
   return (
     <div className="flex-1 w-full relative bg-zinc-950 h-[calc(100vh-64px)] overflow-hidden">
       <MapContainer
         crs={L.CRS.Simple}
         center={[0, 0]}
-        zoom={0}
-        minZoom={-2}
+        zoom={5}
+        minZoom={4}
         maxZoom={5}
         // @ts-ignore Let Leaflet options pass through
         zoomControl={false} // Disable default zoom control UI to remove the bright white +/- artifact
         className="h-full w-full outline-none z-0"
         style={{ background: "#09090b", cursor: "grab" }}
       >
-        <MapEventsHandler onZoom={(z: number) => setZoom(z)} />
+        <MapDataFetcher
+          setZoom={setZoom}
+          setMapObjects={setMapObjects}
+          setLoadingMap={setLoadingMap}
+        />
         <SpaceGridLayer />
         <MapInfoPanel />
+        {loadingMap && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-zinc-950/80 text-zinc-300 px-4 py-2 rounded-full text-sm border border-zinc-800 pointer-events-none">
+            Scanning Sector...
+          </div>
+        )}
 
-        {DUMMY_OBJECTS.map((obj) => (
+        {mapObjects.map((obj) => (
           <Marker key={obj.id} position={[obj.y, obj.x]} icon={icons[obj.id]}>
             <Popup
               className="custom-map-popup"
