@@ -66,14 +66,6 @@ services:
       - POSTGRES_DB=db
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  test-db:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=test_db
-    ports:
-      - "5433:5432"
 
   nginx:
     build: ./nginx

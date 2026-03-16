@@ -121,6 +121,7 @@ export default function Shipyard() {
     <div className="space-y-8">
       <ShipQueueList queue={queue} availableShips={availableShips} now={now} />
       <ShipList
+        selectedPlanet={selectedPlanet}
         availableShips={availableShips}
         currentShips={currentShips}
         onQueueShips={handleQueueShips}

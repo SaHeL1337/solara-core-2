@@ -10,7 +10,8 @@
     "requirements": {
       "SHIPYARD": 1
     },
-    "buildTimeInSeconds": "120 * (10 / (9 + shipyardLevel))"
+    "buildTimeInSeconds": "120 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 50
   },
   "CRUISER": {
     "name": "Cruiser",
@@ -23,7 +24,8 @@
     "requirements": {
       "SHIPYARD": 4
     },
-    "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))"
+    "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 100
   },
   "BATTLESHIP": {
     "name": "Battleship",
@@ -36,7 +38,8 @@
     "requirements": {
       "SHIPYARD": 7
     },
-    "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))"
+    "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 20
   },
   "COLONY_SHIP": {
     "name": "Colony Ship",
@@ -49,6 +52,7 @@
     "requirements": {
       "SHIPYARD": 3
     },
-    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))"
+    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 5
   }
 }

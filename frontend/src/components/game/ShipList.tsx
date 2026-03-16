@@ -8,6 +8,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { Planet } from "@/context/GameContext";
 
 type ShipConfig = {
   name: string;
@@ -19,6 +20,7 @@ type ShipConfig = {
 };
 
 type ShipListProps = {
+  selectedPlanet: Planet;
   availableShips: Record<string, ShipConfig>;
   currentShips?: any[];
   onQueueShips: (type: string, quantity: number) => void;
@@ -26,6 +28,7 @@ type ShipListProps = {
 };
 
 export default function ShipList({
+  selectedPlanet,
   availableShips,
   currentShips = [],
   onQueueShips,
@@ -52,6 +55,12 @@ export default function ShipList({
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Object.entries(availableShips).map(([type, config]) => {
           const qty = quantities[type] || 1;
+          const maxQty = Math.min(
+            Math.floor(selectedPlanet.titanium / config.cost.titanium),
+            Math.floor(selectedPlanet.silicate / config.cost.silicate),
+            Math.floor(selectedPlanet.isotope / config.cost.isotope),
+          );
+
           const buildTime = config.buildTimeInSeconds;
 
           const meetsReqs = config.meetsRequirements;
@@ -65,9 +74,11 @@ export default function ShipList({
               <CardHeader className="pb-2 relative">
                 <CardTitle className="flex justify-between items-center">
                   <span>{config.name}</span>
-                  <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-full border border-slate-700">
-                    Owned: {formatNumber(currentCount)}
-                  </span>
+                  {meetsReqs && (
+                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-full border border-slate-700">
+                      Owned: {formatNumber(currentCount)}
+                    </span>
+                  )}
                 </CardTitle>
                 <div className="text-xs text-slate-400 italic mt-1">
                   {config.description}
@@ -79,42 +90,22 @@ export default function ShipList({
                 )}
               </CardHeader>
               <CardContent className="flex flex-col flex-1 mt-2">
-                <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
+                <div className="grid grid-cols-4 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
                   <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">
-                      Build Time (each)
-                    </span>
-                    <span>{formatNumber(buildTime)}s</span>
+                    <span className="text-slate-500 text-xs">Build Time</span>
+                    <span>{formatNumber(buildTime * qty)}s</span>
                   </div>
-                </div>
-
-                <div className="flex flex-col text-sm mb-4 space-y-1">
-                  <span className="text-slate-500 text-xs text-center mb-1 border-b border-slate-800 pb-1">
-                    Cost per Unit
-                  </span>
-                  <div className="flex justify-evenly text-amber-200/90 font-mono text-xs mt-1">
-                    {Object.entries(config.cost).map(([res, val]) =>
-                      val > 0 ? (
-                        <span key={res} className="capitalize">
-                          {formatNumber(val)} {res}
-                        </span>
-                      ) : null,
-                    )}
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 text-xs">Titanium</span>
+                    <span>{formatNumber(config.cost.titanium * qty)}</span>
                   </div>
-                </div>
-
-                <div className="flex flex-col text-sm mb-4 space-y-1">
-                  <span className="text-slate-500 text-xs text-center mb-1 border-b border-slate-800 pb-1">
-                    Total Cost for {qty} Ships
-                  </span>
-                  <div className="flex justify-evenly text-amber-200/90 font-mono text-xs mt-1">
-                    {Object.entries(config.cost).map(([res, val]) =>
-                      val > 0 ? (
-                        <span key={res} className="capitalize">
-                          {formatNumber(val * qty)} {res}
-                        </span>
-                      ) : null,
-                    )}
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 text-xs">Silicate</span>
+                    <span>{formatNumber(config.cost.silicate * qty)}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-slate-500 text-xs">Isotope</span>
+                    <span>{formatNumber(config.cost.isotope * qty)}</span>
                   </div>
                 </div>
 
@@ -126,8 +117,16 @@ export default function ShipList({
                       .join(", ")}
                   </div>
                 )}
+                {meetsReqs && (
+                  <div className="text-xs text-green-400 mt-2 mb-4 bg-green-950/30 p-2 rounded -mx-1">
+                    Requires:{" "}
+                    {Object.entries(config.requirements)
+                      .map(([reqType, reqLvl]) => `${reqType} Lv. ${reqLvl}`)
+                      .join(", ")}
+                  </div>
+                )}
 
-                <div className="mt-auto pt-2 grid grid-cols-[1fr,2fr] gap-2">
+                <div className="mt-auto pt-2 grid grid-cols-2 gap-2">
                   <input
                     type="number"
                     min="1"
@@ -139,6 +138,15 @@ export default function ShipList({
                   />
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all disabled:opacity-50"
+                    onClick={() =>
+                      handleQuantityChange(type, maxQty.toString())
+                    }
+                    disabled={!meetsReqs || isQueueing}
+                  >
+                    Max ({formatNumber(maxQty)})
+                  </Button>
+                  <Button
+                    className="w-full col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all disabled:opacity-50"
                     onClick={() => onQueueShips(type, qty)}
                     disabled={!meetsReqs || isQueueing || qty < 1}
                   >
