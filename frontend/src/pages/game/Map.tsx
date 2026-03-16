@@ -10,6 +10,7 @@ import { renderToString } from "react-dom/server";
 import { Globe, Hexagon, Sparkles } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useGame } from "@/context/GameContext";
 
 import { MapContextMenu, SpaceObject } from "./MapContextMenu";
 
@@ -140,7 +141,7 @@ function MapDataFetcher({
       const maxX = Math.ceil(bounds.getEast() + 10);
       const minY = Math.floor(bounds.getSouth() - 10);
       const maxY = Math.ceil(bounds.getNorth() + 10);
-
+      console.log("Fetching map objects for bounds:", minX, maxX, minY, maxY);
       try {
         setLoadingMap(true);
         const { data } = await api.get(
@@ -184,6 +185,7 @@ export default function Map() {
   const [zoom, setZoom] = useState(0);
   const [mapObjects, setMapObjects] = useState<SpaceObject[]>([]);
   const [loadingMap, setLoadingMap] = useState(false);
+  const { selectedPlanet } = useGame();
 
   // Custom icons memoized
   const icons = useMemo(() => {
@@ -206,7 +208,7 @@ export default function Map() {
     <div className="flex-1 w-full relative bg-zinc-950 h-[calc(100vh-64px)] overflow-hidden">
       <MapContainer
         crs={L.CRS.Simple}
-        center={[0, 0]}
+        center={[selectedPlanet?.y || 0, selectedPlanet?.x || 0]}
         zoom={5}
         minZoom={4}
         maxZoom={5}

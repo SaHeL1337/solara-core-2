@@ -14,6 +14,8 @@ export interface Planet {
   titanium: number;
   silicate: number;
   isotope: number;
+  x: number;
+  y: number;
   production: {
     titanium: number;
     silicate: number;

@@ -25,7 +25,7 @@ export function PlanetSelector() {
       >
         {user.planets.map((planet) => (
           <option key={planet.id} value={planet.id}>
-            {planet.name}
+            {planet.name} ({planet.x}, {planet.y})
           </option>
         ))}
       </select>
