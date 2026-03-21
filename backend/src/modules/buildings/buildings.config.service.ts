@@ -5,6 +5,7 @@ export interface BuildingCostInfo {
   silicate: number;
   isotope: number;
   flux: number;
+  housing: number;
 }
 
 export interface CalculatedBuildingInfo {
@@ -14,6 +15,7 @@ export interface CalculatedBuildingInfo {
   level: number;
   targetLevel: number;
   cost: BuildingCostInfo;
+  maxLevel: number;
   production: number;
   productionIncrease: number;
   buildTimeInSeconds: number;
@@ -62,7 +64,11 @@ export const getBuildingConfig = (
       flux: config.cost?.flux
         ? evaluateFormula(config.cost.flux, targetLevel)
         : 0,
+      housing: config.cost?.housing
+        ? evaluateFormula(config.cost.housing, targetLevel)
+        : 0,
     },
+    maxLevel: config.maxLevel,
     production: evaluateFormula(config.production || 0, currentLevel),
     productionIncrease:
       evaluateFormula(config.production || 0, targetLevel) -

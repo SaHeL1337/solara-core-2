@@ -115,6 +115,10 @@ export const addToQueue = async (
   const costIsotope = calcConfig.cost.isotope;
   const durationSec = calcConfig.buildTimeInSeconds;
 
+  if (calcConfig.maxLevel < targetLevel) {
+    throw new Error("Max level reached");
+  }
+
   //remove resources from the spaceObject if there is enough
   const planetObj = await prisma.planet.findUnique({
     where: { id: planetId },

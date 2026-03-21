@@ -5,8 +5,10 @@
     "cost": {
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)"
+      "isotope": "100 * 1.5 ^ (level - 1)",
+      "housing": "100 * 1.5 ^ (level - 1)"
     },
+    "maxLevel": 40,
     "production": "1200 * level",
     "buildTimeInSeconds": "60 * level"
   },
@@ -16,8 +18,10 @@
     "cost": {
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)"
+      "isotope": "100 * 1.5 ^ (level - 1)",
+      "housing": "100 * 1.5 ^ (level - 1)"
     },
+    "maxLevel": 40,
     "production": "1000 * level",
     "buildTimeInSeconds": "60 * level"
   },
@@ -27,8 +31,10 @@
     "cost": {
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)"
+      "isotope": "100 * 1.5 ^ (level - 1)",
+      "housing": "100 * 1.5 ^ (level - 1)"
     },
+    "maxLevel": 40,
     "production": "1000 * level",
     "buildTimeInSeconds": "60 * level"
   },
@@ -40,17 +46,46 @@
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)"
     },
+    "maxLevel": 30,
     "production": 0,
     "buildTimeInSeconds": "60 * level"
   },
-  "RESEARCH_LAB": {
-    "name": "Research Lab",
-    "description": "Produces research",
+  "SHIELD_GENERATOR": {
+    "name": "Shield Generator",
+    "description": "Shields Planet",
     "cost": {
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)"
+      "isotope": "100 * 1.5 ^ (level - 1)",
+      "housing": "100 * 1.5 ^ (level - 1)"
     },
+    "maxLevel": 25,
+    "production": 0,
+    "buildTimeInSeconds": "60 * level"
+  },
+  "HOUSING_BLOCK": {
+    "name": "Housing Block",
+    "description": "Increases population capacity",
+    "cost": {
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "100 * 1.5 ^ (level - 1)",
+      "housing": "0"
+    },
+    "maxLevel": 60,
+    "production": "1000 * level",
+    "buildTimeInSeconds": "60 * level"
+  },
+  "GOVERNMENT_BUILDING": {
+    "name": "Government Building",
+    "description": "Increase Build Speed",
+    "cost": {
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "0",
+      "housing": "100 * 1.5 ^ (level - 1)"
+    },
+    "maxLevel": 40,
     "production": 0,
     "buildTimeInSeconds": "60 * level"
   }

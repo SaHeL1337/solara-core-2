@@ -1,6 +1,28 @@
 import { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { formatNumber } from "@/lib/utils";
+import { Bell, Settings, User } from "lucide-react";
+import {
+  TitaniumIcon,
+  SilicateIcon,
+  IsotopeIcon,
+  FluxIcon,
+} from "@/components/ui/icons";
+
+const getIconForResource = (name: string, className?: string) => {
+  switch (name.toLowerCase()) {
+    case "titanium":
+      return <TitaniumIcon className={className} />;
+    case "silicate":
+      return <SilicateIcon className={className} />;
+    case "isotope":
+      return <IsotopeIcon className={className} />;
+    case "flux":
+      return <FluxIcon className={className} />;
+    default:
+      return null;
+  }
+};
 
 export default function ResourceHeader() {
   const { user, selectedPlanet } = useGame();
@@ -62,28 +84,42 @@ export default function ResourceHeader() {
   ];
 
   return (
-    <header className="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md flex items-center px-6 justify-between sticky top-0 z-10">
-      <div className="flex gap-8">
-        {userResources.map((r) => (
-          <div key={r.name} className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-              {r.name}
+    <header className="h-20 bg-[#16181d] flex items-center px-8 justify-between sticky top-0 z-10">
+      {/* Left side spacer to help centering if we want */}
+      <div className="flex-1"></div>
+
+      {/* Center: Resources */}
+      <div className="flex items-center justify-center gap-8 text-[14px] font-bold tracking-widest uppercase">
+        {planetResources.map((r) => (
+          <div
+            key={r.name}
+            className="flex items-center gap-1.5 text-[#94a3b8]"
+          >
+            {getIconForResource(r.name, "size-3.5")}
+            <span className="text-[#e2e8f0] font-mono tracking-normal">
+              {r.value}
             </span>
-            <span className={`text-sm font-mono ${r.color}`}>{r.value}</span>
           </div>
         ))}
-        {planetResources.map((r) => (
-          <div key={r.name} className="flex flex-col">
-            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
-              {r.name}
-            </span>
-            <span className={`text-sm font-mono ${r.color}`}>{r.value}</span>
+        {userResources.map((r) => (
+          <div
+            key={r.name}
+            className="flex items-center gap-1.5 text-[#00E5FF]"
+          >
+            {getIconForResource(r.name, "size-4")}
+            <span className="font-mono tracking-normal">{r.value}</span>
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-4">
-        {/* Profile/Settings placeholder */}
-        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700"></div>
+
+      {/* Right side icons */}
+      <div className="flex-1 flex justify-end items-center gap-6 text-[#94a3b8]">
+        <button className="hover:text-[#e2e8f0] transition-colors">
+          <Bell className="size-4" />
+        </button>
+        <button className="hover:text-[#e2e8f0] transition-colors">
+          <Settings className="size-4" />
+        </button>
       </div>
     </header>
   );

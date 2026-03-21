@@ -18,14 +18,14 @@ export default function GameLayout() {
 
   if (!isReady)
     return (
-      <div className="h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="h-screen bg-background flex items-center justify-center text-white">
         Loading...
       </div>
     );
 
   return (
     <GameProvider>
-      <div className="flex h-screen bg-slate-950 text-white">
+      <div className="flex h-screen bg-background text-foreground">
         <Sidebar /> {/* Your game menu */}
         <div className="flex-1 flex flex-col">
           <ResourceHeader /> {/* Your Gold, Wood, etc. */}

@@ -1,15 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
 import { useGame } from "@/context/GameContext";
 import api from "@/lib/api";
+import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 
 type BuildingConfig = {
   name: string;
@@ -18,11 +11,36 @@ type BuildingConfig = {
   targetLevel: number;
   cost: Record<string, number>;
   production: number;
+  maxLevel: number;
   productionIncrease: number;
   buildTimeInSeconds: number;
 };
 
 type APIBuildingMapping = Record<string, BuildingConfig>;
+
+const getFinishTimeString = (finishTimeMs: number) => {
+  const finishDate = new Date(finishTimeMs);
+  const now = new Date();
+  const isSameDay =
+    finishDate.getDate() === now.getDate() &&
+    finishDate.getMonth() === now.getMonth() &&
+    finishDate.getFullYear() === now.getFullYear();
+
+  const timeStr = finishDate.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  if (!isSameDay) {
+    const dateStr = finishDate.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    });
+    return `${dateStr} ${timeStr}`;
+  }
+  return timeStr;
+};
 
 export default function Buildings() {
   const { selectedPlanet, refreshUser } = useGame();
@@ -31,6 +49,7 @@ export default function Buildings() {
   const [queue, setQueue] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState(Date.now());
+  const [fetchTime, setFetchTime] = useState(Date.now());
   const prevPlanetId = useRef<string | null>(null);
 
   const fetchBuildings = useCallback(async () => {
@@ -41,6 +60,7 @@ export default function Buildings() {
       );
       setAvailableBuildings(data.data.available);
       setQueue(data.data.queue);
+      setFetchTime(Date.now());
       console.log(data.data);
     } catch (err) {
       console.error("Failed to fetch buildings", err);
@@ -68,16 +88,11 @@ export default function Buildings() {
   }, [selectedPlanet?.id, fetchBuildings]);
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (queue.length > 0 && queue[0].startedAt) {
-      interval = setInterval(() => {
-        setNow(Date.now());
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [queue]);
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (queue.length > 0 && queue[0].startedAt) {
@@ -126,75 +141,131 @@ export default function Buildings() {
     return queued ? queued.status : null;
   };
 
+  const formatTime = (totalSeconds: number) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = Math.floor(totalSeconds % 60);
+    if (h > 0) {
+      return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {queue.length > 0 && (
         <div>
-          <h2 className="text-xl font-bold text-slate-100 mb-4">
+          <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-4">
             Construction Queue ({queue.length}/3)
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 mb-4">
+            {/* Active Upgrade Block */}
             {queue.map((q, idx) => {
               const config = availableBuildings[q.buildingType];
               const buildingName = config ? config.name : q.buildingType;
               const isFirst = idx === 0;
+              const imgPath = `/buildings/${q.buildingType.toLowerCase()}.png`;
 
-              // Calculate progress for the active building
+              const totalDurationSoFar = queue
+                .slice(0, idx + 1)
+                .reduce((acc, curr) => acc + curr.durationSec, 0);
+
+              const startBase =
+                queue.length > 0 && queue[0].startedAt
+                  ? new Date(queue[0].startedAt).getTime()
+                  : now;
+
+              const finishTimeMs = startBase + totalDurationSoFar * 1000;
+              const finishTimeString = getFinishTimeString(finishTimeMs);
               let progress = 0;
               let timeRemaining = "";
-              if (isFirst && q.startedAt) {
-                const start = new Date(q.startedAt).getTime();
-                const elapsedSec = Math.floor((now - start) / 1000);
-                const totalSec = q.durationSec;
-                progress = Math.min(
-                  100,
-                  Math.max(0, (elapsedSec / totalSec) * 100),
-                );
+              const start = new Date(q.startedAt).getTime();
+              const elapsedSec = Math.floor((now - start) / 1000);
+              const totalSec = q.durationSec;
+              progress = Math.min(
+                100,
+                Math.max(0, (elapsedSec / totalSec) * 100),
+              );
+              const remSec = Math.max(0, totalSec - elapsedSec);
+              const m = Math.floor(remSec / 60);
+              const s = remSec % 60;
+              timeRemaining = `${m}m ${s}s`;
 
-                const remSec = Math.max(0, totalSec - elapsedSec);
-                const m = Math.floor(remSec / 60);
-                const s = remSec % 60;
-                timeRemaining = `${m}m ${s}s`;
-              }
-
-              return (
-                <Card
-                  key={q.id || idx}
-                  className={`bg-slate-800 border-slate-700 text-slate-200 ${
-                    isFirst ? "md:col-span-2 lg:col-span-3" : ""
-                  }`}
-                >
-                  <CardContent className="p-4 flex flex-col justify-center">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <div className="font-semibold text-slate-100">
-                          {buildingName}
+              if (isFirst) {
+                return (
+                  <div
+                    key={q.id || idx}
+                    className="flex-1 bg-[#16181d] border-l-2 border-[#00E5FF] p-4 shadow-lg flex items-center gap-6"
+                  >
+                    <img
+                      src={imgPath}
+                      alt={buildingName}
+                      className="w-16 h-16 object-cover border border-[#2a2e38]"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <div className="text-lg font-bold text-white mb-1">
+                            {buildingName}
+                          </div>
                         </div>
-                        <div className="text-sm text-slate-400">
-                          Upgrade to Level {q.targetLevel}
+                        <div className="px-2 py-1 border border-[#00E5FF]/30 text-[#00E5FF] text-[10px] uppercase tracking-widest font-bold">
+                          LEVEL {q.targetLevel}
                         </div>
                       </div>
-                      <div className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 text-amber-400">
-                        {isFirst ? q.status : "WAITING"}
+                      <div>
+                        <div className="flex justify-between text-xs mb-2">
+                          <span className="text-[#00E5FF] font-mono">
+                            {progress.toFixed(1)}%
+                          </span>
+                          <span className="text-[#e2e8f0] font-mono">
+                            {timeRemaining}{" "}
+                            {finishTimeString && (
+                              <span className="text-[#64748b]">
+                                ({finishTimeString})
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-[#1e2028] overflow-hidden">
+                          <div
+                            className="h-full bg-[#00E5FF] transition-all duration-1000 ease-linear shadow-[0_0_10px_#00E5FF]"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
+                  </div>
+                );
+              }
 
-                    {isFirst && q.startedAt && (
-                      <div className="mt-2 text-xs">
-                        <div className="flex justify-between text-slate-400 mb-1 font-mono">
-                          <span>{progress.toFixed(1)}%</span>
-                          <span>{timeRemaining}</span>
-                        </div>
-                        <div className="w-full bg-slate-900 rounded-full h-2 border border-slate-700 overflow-hidden">
-                          <div
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-1000 ease-linear"
-                            style={{ width: `${progress}%` }}
-                          ></div>
-                        </div>
+              // Waiting Queue Blocks
+              return (
+                <div
+                  key={q.id || idx}
+                  className="flex-1 bg-[#1a1d24] border border-[#2a2e38] p-4 flex items-center gap-6 opacity-70"
+                >
+                  <img
+                    src={imgPath}
+                    alt={buildingName}
+                    className="w-16 h-16 object-cover border border-[#2a2e38]"
+                  />
+                  <div className="flex-1 flex justify-between items-start">
+                    <div>
+                      <div className="text-sm font-bold text-white mb-1">
+                        {buildingName}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="px-2 py-1 bg-[#2a2e38] text-[#94a3b8] text-[10px] uppercase tracking-widest font-bold">
+                        LEVEL {q.targetLevel}
+                      </div>
+                      <div className="text-[#64748b] text-[10px] font-mono">
+                        {timeRemaining} | {finishTimeString}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -202,82 +273,141 @@ export default function Buildings() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-slate-100 mb-4">
-          Available Buildings
-        </h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {Object.entries(availableBuildings).map(([type, config]) => {
             const status = getQueueStatus(type);
-
             const level = config.level;
-            const targetLevel = config.targetLevel;
-            const targetCosts: React.ReactNode[] = [];
+            const buildTime = config.buildTimeInSeconds;
 
-            // Cost is already evaluated dynamically for the target level by the backend
-            Object.entries(config.cost).forEach(([resource, costValue]) => {
+            // Determine if affordable and time until affordable
+            const elapsedSec = (now - fetchTime) / 1000;
+            let timeUntilAffordable = 0;
+            const missingResources: Record<string, boolean> = {};
+
+            Object.entries(config.cost).map(([resource, costValue]) => {
               if (costValue > 0) {
-                targetCosts.push(
-                  <span key={resource} className="capitalize">
-                    {formatNumber(costValue)} {resource}
-                  </span>,
-                );
+                const currentAmount = (selectedPlanet as any)[
+                  resource
+                ] as number;
+                const productionPerHour = (selectedPlanet as any).production[
+                  resource
+                ] as number;
+                const accrued = (productionPerHour / 3600) * elapsedSec;
+                const projectedAmount = currentAmount + accrued;
+
+                if (costValue > projectedAmount) {
+                  missingResources[resource] = true;
+                  if (productionPerHour > 0) {
+                    const timeNeeded =
+                      (costValue - projectedAmount) /
+                      (productionPerHour / 3600);
+                    if (timeNeeded > timeUntilAffordable) {
+                      timeUntilAffordable = timeNeeded;
+                    }
+                  } else {
+                    timeUntilAffordable = Infinity; // Will never afford
+                  }
+                }
               }
             });
 
-            const buildTime = config.buildTimeInSeconds;
+            const isAffordable = Object.keys(missingResources).length === 0;
 
             return (
-              <Card
+              <div
                 key={type}
-                className="bg-slate-900 border-slate-800 text-slate-100 flex flex-col"
+                className="bg-[#1a1d24] border border-[#2a2e38] p-6 flex flex-col transition-colors hover:border-[#3b4252]"
               >
-                <CardHeader className="pb-2">
-                  <CardTitle>{config.name}</CardTitle>
-                  <CardDescription className="text-blue-400 font-semibold mb-1">
-                    Level {level}
-                  </CardDescription>
-                  <div className="text-xs text-slate-400 italic">
-                    {config.description}
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-24 h-24 bg-[#00E5FF]/5 border border-[#00E5FF]/20 overflow-hidden shrink-0">
+                    <img
+                      src={`/buildings/${type.toLowerCase()}.png`}
+                      alt={config.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-1 mt-2">
-                  <div className="grid grid-cols-2 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
-                    {config.production > 0 && (
-                      <div className="flex flex-col">
-                        <span className="text-slate-500 text-xs">
-                          Production
-                        </span>
-                        <span className="text-emerald-400 font-medium">
-                          +{formatNumber(config.productionIncrease)}/hr
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col">
-                      <span className="text-slate-500 text-xs">Build Time</span>
-                      <span>{formatNumber(buildTime)}s</span>
+                  <div>
+                    <div className="text-[11px] font-bold text-[#00E5FF] px-2 py-1">
+                      <h3 className="text-lg font-bold text-white">
+                        {config.name}
+                      </h3>
+                    </div>
+                    <div className="text-[12px] text-right font-bold text-[#00E5FF] px-2 py-1">
+                      Level {level}/{config.maxLevel}
                     </div>
                   </div>
+                </div>
 
-                  <div className="flex flex-col text-sm mb-4 space-y-1">
-                    <span className="text-slate-500 text-xs text-center mb-1 border-b border-slate-800 pb-1">
-                      Upgrade Cost (Lv {targetLevel})
-                    </span>
-                    <div className="flex justify-evenly text-amber-200/90 font-mono text-xs mt-1">
-                      {targetCosts.length > 0 ? targetCosts : <span>Free</span>}
+                {/* Costs & Time Panel */}
+                <div className="flex flex-wrap gap-1 mb-1">
+                  {Object.entries(config.cost).map(([resource, costValue]) => {
+                    if (costValue > 0) {
+                      let Icon = null;
+                      if (resource === "titanium") Icon = TitaniumIcon;
+                      if (resource === "silicate") Icon = SilicateIcon;
+                      if (resource === "isotope") Icon = IsotopeIcon;
+
+                      return (
+                        <div
+                          key={resource}
+                          title={`${resource.charAt(0).toUpperCase() + resource.slice(1)}`}
+                          className="flex-1 bg-[#16181d] p-3 text-center min-w-[70px]"
+                        >
+                          <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1 flex items-center justify-center gap-1">
+                            {Icon && <Icon className="size-3" />}
+                            {resource}
+                          </div>
+                          <div
+                            className={`text-xs font-mono font-bold ${missingResources[resource] ? "text-red-400" : "text-[#e2e8f0]"}`}
+                          >
+                            {formatNumber(costValue)}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1 mb-4">
+                  <div className="flex-1 bg-[#16181d] p-3 text-center min-w-[70px]">
+                    <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1">
+                      Time
+                    </div>
+                    <div className="text-xs font-mono font-bold text-[#e2e8f0]">
+                      {formatTime(buildTime)}
                     </div>
                   </div>
-
-                  <div className="mt-auto pt-2">
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all"
-                      onClick={() => handleUpgrade(type)}
-                    >
-                      {status ? `Upgrading (${status})` : "Upgrade"}
-                    </Button>
+                  <div className="flex-1 bg-[#16181d] p-3 text-center min-w-[70px]">
+                    <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1">
+                      Housing
+                    </div>
+                    <div className="text-xs font-mono font-bold text-[#e2e8f0]">
+                      {config.cost.housing}
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+
+                <div className="mt-auto">
+                  <button
+                    disabled={!isAffordable}
+                    style={{ borderRadius: 0 }}
+                    className={`w-full py-3 text-[8px] tracking-widest transition-all ${
+                      status !== null
+                        ? "bg-[#16181d] text-[#00E5FF] borderborder-[#00E5FF] cursor-not-allowed"
+                        : isAffordable
+                          ? "bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]"
+                          : "bg-[#16181d] text-[#64748b] border border-[#00E5FF] cursor-not-allowed opacity-80"
+                    }`}
+                    onClick={() => handleUpgrade(type)}
+                  >
+                    {isAffordable
+                      ? "Upgrade"
+                      : timeUntilAffordable === Infinity
+                        ? "INSUFFICIENT RESOURCES"
+                        : `${formatTime(timeUntilAffordable)}`}
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>

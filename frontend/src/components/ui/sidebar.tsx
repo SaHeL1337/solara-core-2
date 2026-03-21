@@ -1,53 +1,61 @@
-import { Home, Pickaxe, Rocket, Map } from "lucide-react";
+import { Rocket, Map, LayoutGrid, Building2, Medal } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { SignOutButton } from "@clerk/clerk-react";
+import { cn } from "@/lib/utils";
 import { PlanetSelector } from "@/components/game/PlanetSelector";
 
 export function Sidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { icon: Home, label: "Overview", path: "/dashboard" },
-    { icon: Pickaxe, label: "Buildings", path: "/buildings" },
+    { icon: LayoutGrid, label: "Overview", path: "/dashboard" },
+    { icon: Building2, label: "Buildings", path: "/buildings" },
     { icon: Rocket, label: "Shipyard", path: "/shipyard" },
-    { icon: Rocket, label: "Fleet", path: "/fleet" },
+    { icon: Medal, label: "Fleet", path: "/fleet" },
     { icon: Map, label: "Map", path: "/map" },
   ];
 
   return (
-    <div className="w-64 border-r border-slate-800 bg-slate-900 flex flex-col">
-      <div className="p-6 space-y-4">
-        <h1 className="text-3xl font-bold tracking-tighter text-blue-500">
-          SOLARA<span className="text-slate-400">CORE</span>
-        </h1>
+    <div className="w-64 border-r border-[#1e2028] bg-[#16181d] flex flex-col pt-6">
+      <div className="px-6 pb-6 border-b border-[#1e2028]/50">
+        {/* LOGO area - like in images 2 & 3 */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight text-[#00E5FF]">
+            Solara<span className="text-[#00E5FF]/80">Core</span>
+          </h1>
+        </div>
+        
+        {/* Planet Selector / Sector Info */}
         <PlanetSelector />
       </div>
-      <nav className="flex-1 px-4 space-y-2">
+
+      <nav className="flex-1 py-6 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname.startsWith(item.path);
           return (
             <Link
               key={item.path}
               to={item.path}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm font-medium",
+                "flex items-center gap-4 px-6 py-3 transition-colors text-sm font-medium border-l-2",
                 isActive
-                  ? "bg-blue-600/10 text-blue-400"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800",
+                  ? "bg-[#1e2028] text-[#00E5FF] border-[#00E5FF]"
+                  : "border-transparent text-[#94a3b8] hover:text-[#e2e8f0] hover:bg-[#1e2028]/50",
               )}
             >
-              <item.icon className="size-4" />
-              {item.label}
+              <item.icon className={cn("size-5", isActive ? "text-[#00E5FF]" : "text-[#94a3b8]")} />
+              <span className="tracking-wide">{item.label}</span>
             </Link>
           );
         })}
-        <SignOutButton />
       </nav>
-      <div className="p-4 border-t border-slate-800">
-        <div className="text-[10px] text-slate-500 uppercase tracking-widest text-center">
-          v0.4.2-ALPHA
-        </div>
+
+      <div className="p-6">
+        <SignOutButton>
+          <button className="w-full bg-[#1e2028] hover:bg-[#2a2e38] text-[#94a3b8] hover:text-[#e2e8f0] font-bold py-3 text-sm tracking-wide transition-colors uppercase border border-[#2a2e38]">
+            Logout
+          </button>
+        </SignOutButton>
       </div>
     </div>
   );
