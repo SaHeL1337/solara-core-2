@@ -1,5 +1,6 @@
 import { QueueStatus } from "../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
+import { getBuildingConfig } from "../buildings/buildings.config.service";
 
 export class JobService {
   async processCompletedBuildings() {
@@ -185,32 +186,19 @@ export class JobService {
           },
         });
 
-        // 4. Find the next pending item for this planet (by position)
-        const nextPending = await tx.buildingQueue.findFirst({
-          where: {
-            planetId: queueItem.planetId,
-            status: QueueStatus.PENDING,
-          },
-          orderBy: {
-            position: "asc",
-          },
-        });
-
-        if (nextPending) {
-          // If there is a next pending item, start it now.
-          // The startedAt is set to the exact completion time of the previous building
-          // to ensure no time is lost between queues.
-          const newStartTime = new Date(
-            queueItem.startedAt!.getTime() + queueItem.durationSec * 1000,
-          );
-
-          await tx.buildingQueue.update({
-            where: { id: nextPending.id },
-            data: {
-              status: QueueStatus.BUILDING,
-              startedAt: newStartTime,
-            },
-          });
+        // 4. Update Population and Capacity if HOUSING_BLOCK
+        if (queueItem.buildingType === "HOUSING_BLOCK") {
+          const config = getBuildingConfig("HOUSING_BLOCK", queueItem.targetLevel - 1, queueItem.targetLevel);
+          const capacityIncrease = config.productionIncrease || 0;
+          if (capacityIncrease > 0) {
+            await tx.planet.update({
+              where: { id: queueItem.planetId },
+              data: {
+                populationCapacity: { increment: capacityIncrease },
+                population: { increment: capacityIncrease },
+              },
+            });
+          }
         }
       });
       console.log(`Successfully processed completion for queue ${queueId}`);

@@ -21,6 +21,8 @@ export interface Planet {
     silicate: number;
     isotope: number;
   };
+  population: number;
+  populationCapacity: number;
   // Add other planet properties as needed (e.g., coordinates, type)
 }
 

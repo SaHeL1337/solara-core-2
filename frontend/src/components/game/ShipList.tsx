@@ -5,7 +5,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
 } from "@/components/ui/card";
 import { Planet } from "@/context/GameContext";
@@ -55,10 +54,12 @@ export default function ShipList({
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {Object.entries(availableShips).map(([type, config]) => {
           const qty = quantities[type] || 1;
+          const populationCost = config.cost.population || 0;
           const maxQty = Math.min(
             Math.floor(selectedPlanet.titanium / config.cost.titanium),
             Math.floor(selectedPlanet.silicate / config.cost.silicate),
             Math.floor(selectedPlanet.isotope / config.cost.isotope),
+            ...(populationCost > 0 ? [Math.floor(selectedPlanet.population / populationCost)] : [])
           );
 
           const buildTime = config.buildTimeInSeconds;
@@ -69,7 +70,7 @@ export default function ShipList({
           return (
             <Card
               key={type}
-              className={`bg-slate-900 border-slate-800 text-slate-100 flex flex-col ${!meetsReqs ? "opacity-60 grayscale-[50%]" : ""}`}
+              className={`bg-slate-900 border-slate-800 text-slate-100 flex flex-col ${!meetsReqs ? "opacity-60 grayscale-50" : ""}`}
             >
               <CardHeader className="pb-2 relative">
                 <CardTitle className="flex justify-between items-center">
@@ -90,7 +91,7 @@ export default function ShipList({
                 )}
               </CardHeader>
               <CardContent className="flex flex-col flex-1 mt-2">
-                <div className="grid grid-cols-4 gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800">
+                <div className={`grid ${config.cost.population ? "grid-cols-5" : "grid-cols-4"} gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800`}>
                   <div className="flex flex-col">
                     <span className="text-slate-500 text-xs">Build Time</span>
                     <span>{formatNumber(buildTime * qty)}s</span>
@@ -107,6 +108,12 @@ export default function ShipList({
                     <span className="text-slate-500 text-xs">Isotope</span>
                     <span>{formatNumber(config.cost.isotope * qty)}</span>
                   </div>
+                  {(config.cost.population || 0) > 0 && (
+                    <div className="flex flex-col">
+                      <span className="text-slate-500 text-xs">Population</span>
+                      <span>{formatNumber((config.cost.population || 0) * qty)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {!meetsReqs && (

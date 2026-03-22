@@ -187,9 +187,7 @@ export default function Buildings() {
                 Math.max(0, (elapsedSec / totalSec) * 100),
               );
               const remSec = Math.max(0, totalSec - elapsedSec);
-              const m = Math.floor(remSec / 60);
-              const s = remSec % 60;
-              timeRemaining = `${m}m ${s}s`;
+              timeRemaining = formatTime(remSec);
 
               if (isFirst) {
                 return (
@@ -289,6 +287,15 @@ export default function Buildings() {
                 const currentAmount = (selectedPlanet as any)[
                   resource
                 ] as number;
+
+                if (resource === "population") {
+                  if (costValue > currentAmount) {
+                    missingResources[resource] = true;
+                    timeUntilAffordable = Infinity;
+                  }
+                  return;
+                }
+
                 const productionPerHour = (selectedPlanet as any).production[
                   resource
                 ] as number;
@@ -341,7 +348,7 @@ export default function Buildings() {
                 {/* Costs & Time Panel */}
                 <div className="flex flex-wrap gap-1 mb-1">
                   {Object.entries(config.cost).map(([resource, costValue]) => {
-                    if (resource === "housing") return;
+                    if (resource === "population") return;
                     if (costValue > 0) {
                       let Icon = null;
                       if (resource === "titanium") Icon = TitaniumIcon;
@@ -380,10 +387,10 @@ export default function Buildings() {
                   </div>
                   <div className="flex-1 bg-[#16181d] p-3 text-center min-w-[70px]">
                     <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1">
-                      Housing
+                      Population
                     </div>
                     <div className="text-xs font-mono font-bold text-[#e2e8f0]">
-                      {config.cost.housing}
+                      {config.cost.population || 0}
                     </div>
                   </div>
                 </div>

@@ -6,7 +6,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "5 + level"
     },
     "maxLevel": 40,
     "production": "1200 * level",
@@ -19,7 +19,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "5 + level"
     },
     "maxLevel": 40,
     "production": "1000 * level",
@@ -32,7 +32,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "5 + level"
     },
     "maxLevel": 40,
     "production": "1000 * level",
@@ -44,7 +44,7 @@
     "cost": {
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)"
+      "population": "15 + level * 2"
     },
     "maxLevel": 30,
     "production": 0,
@@ -57,7 +57,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "1 + level"
     },
     "maxLevel": 25,
     "production": 0,
@@ -70,7 +70,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "100 * 1.5 ^ (level - 1)",
-      "housing": "0"
+      "population": "0"
     },
     "maxLevel": 60,
     "production": "1000 * level",
@@ -83,7 +83,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "0",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "50 + level * 0.4"
     },
     "maxLevel": 40,
     "production": 0,
@@ -96,7 +96,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "0",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "0"
     },
     "maxLevel": 40,
     "production": 0,
@@ -109,7 +109,7 @@
       "titanium": "100 * 1.5 ^ (level - 1)",
       "silicate": "100 * 1.5 ^ (level - 1)",
       "isotope": "0",
-      "housing": "100 * 1.5 ^ (level - 1)"
+      "population": "100"
     },
     "maxLevel": 40,
     "production": 0,

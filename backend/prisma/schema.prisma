@@ -45,6 +45,9 @@ model Planet {
   queue       BuildingQueue[]
   ships       PlanetShip[]
   shipQueue   ShipQueue[]
+
+  population  Int @default(0)
+  populationCapacity Int @default(0)
 }
 
 model PlanetShip {

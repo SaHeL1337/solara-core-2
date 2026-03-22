@@ -60,7 +60,7 @@ export const getBuildings = async (userId: string, planetId: string) => {
   // Fetch active queue
   const queue = await prisma.buildingQueue.findMany({
     where: { planetId, status: { in: ["PENDING", "BUILDING"] } },
-    orderBy: { position: "asc" },
+    orderBy: { startedAt: "asc" },
   });
 
   // update planet resources
@@ -113,6 +113,7 @@ export const addToQueue = async (
   const costTitanium = calcConfig.cost.titanium;
   const costSilicate = calcConfig.cost.silicate;
   const costIsotope = calcConfig.cost.isotope;
+  const costPopulation = calcConfig.cost.population || 0;
   const durationSec = calcConfig.buildTimeInSeconds;
 
   if (calcConfig.maxLevel < targetLevel) {
@@ -143,6 +144,10 @@ export const addToQueue = async (
     throw new Error("Not enough isotope");
   }
 
+  if (planetObj.population < costPopulation) {
+    throw new Error("Not enough population");
+  }
+
   const player = await prisma.user.findUnique({
     where: { id: userId },
   });
@@ -165,6 +170,13 @@ export const addToQueue = async (
     },
   });
 
+  await prisma.planet.update({
+    where: { id: planetId },
+    data: {
+      population: planetObj.population - costPopulation,
+    },
+  });
+
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -174,6 +186,23 @@ export const addToQueue = async (
 
   // 4. Create the record
   const isFirstInQueue = currentQueueCount === 0;
+  
+  let startedAt = new Date();
+  let nextPosition = 0;
+  if (!isFirstInQueue) {
+    const lastQueueItem = await prisma.buildingQueue.findFirst({
+      where: { planetId, status: { in: ["PENDING", "BUILDING"] } },
+      orderBy: { finishedAt: "desc" },
+    });
+    if (lastQueueItem) {
+      nextPosition = lastQueueItem.position + 1;
+      if (lastQueueItem.finishedAt) {
+        startedAt = lastQueueItem.finishedAt > startedAt ? lastQueueItem.finishedAt : startedAt;
+      }
+    }
+  }
+
+  const finishedAt = new Date(startedAt.getTime() + durationSec * 1000);
 
   return await prisma.buildingQueue.create({
     data: {
@@ -185,10 +214,10 @@ export const addToQueue = async (
       costSilicate,
       costIsotope,
       durationSec,
-      position: currentQueueCount,
-      status: isFirstInQueue ? "BUILDING" : "PENDING",
-      ...(isFirstInQueue ? { startedAt: new Date() } : {}),
-      finishedAt: new Date(Date.now() + durationSec * 1000),
+      position: nextPosition,
+      status: "BUILDING",
+      startedAt,
+      finishedAt,
     },
   });
 };

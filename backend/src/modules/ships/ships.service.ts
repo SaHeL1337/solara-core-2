@@ -75,6 +75,7 @@ export const queueShips = async (
   const costTitanium = config.cost.titanium * quantity;
   const costSilicate = config.cost.silicate * quantity;
   const costIsotope = config.cost.isotope * quantity;
+  const costPopulation = (config.cost.population || 0) * quantity;
   const durationSec = config.buildTimeInSeconds;
 
   const planetObj = await prisma.planet.findUnique({
@@ -97,6 +98,9 @@ export const queueShips = async (
   if (spaceObject.isotope < costIsotope) {
     throw new Error("Not enough isotope");
   }
+  if (planetObj.population < costPopulation) {
+    throw new Error("Not enough population");
+  }
 
   // Deduct resources
   await prisma.spaceObject.update({
@@ -105,6 +109,13 @@ export const queueShips = async (
       titanium: spaceObject.titanium - costTitanium,
       silicate: spaceObject.silicate - costSilicate,
       isotope: spaceObject.isotope - costIsotope,
+    },
+  });
+
+  await prisma.planet.update({
+    where: { id: planetId },
+    data: {
+      population: planetObj.population - costPopulation,
     },
   });
 
@@ -117,6 +128,20 @@ export const queueShips = async (
 
   const isFirstInQueue = currentQueueCount === 0;
 
+  let nextPosition = 0;
+  if (!isFirstInQueue) {
+    const lastQueueItem = await prisma.shipQueue.findFirst({
+      where: {
+        planetId,
+        status: { in: [QueueStatus.PENDING, QueueStatus.BUILDING] },
+      },
+      orderBy: { position: "desc" },
+    });
+    if (lastQueueItem) {
+      nextPosition = lastQueueItem.position + 1;
+    }
+  }
+
   return await prisma.shipQueue.create({
     data: {
       planetId,
@@ -126,7 +151,7 @@ export const queueShips = async (
       costSilicate,
       costIsotope,
       durationSec,
-      position: currentQueueCount,
+      position: nextPosition,
       status: isFirstInQueue ? QueueStatus.BUILDING : QueueStatus.PENDING,
       ...(isFirstInQueue ? { startedAt: new Date() } : {}),
       completedCount: 0,

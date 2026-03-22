@@ -8,6 +8,7 @@ export type ShipConfigItem = {
     titanium: number;
     silicate: number;
     isotope: number;
+    population?: number;
   };
   requirements: Record<string, number>;
   buildTimeInSeconds: string;
@@ -21,6 +22,7 @@ export type CalculatedShipInfo = {
     titanium: number;
     silicate: number;
     isotope: number;
+    population?: number;
   };
   requirements: Record<string, number>;
   buildTimeInSeconds: number;

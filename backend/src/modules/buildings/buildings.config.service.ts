@@ -5,7 +5,7 @@ export interface BuildingCostInfo {
   silicate: number;
   isotope: number;
   flux: number;
-  housing: number;
+  population: number;
 }
 
 export interface CalculatedBuildingInfo {
@@ -64,8 +64,8 @@ export const getBuildingConfig = (
       flux: config.cost?.flux
         ? evaluateFormula(config.cost.flux, targetLevel)
         : 0,
-      housing: config.cost?.housing
-        ? evaluateFormula(config.cost.housing, targetLevel)
+      population: config.cost?.population
+        ? evaluateFormula(config.cost.population, targetLevel)
         : 0,
     },
     maxLevel: config.maxLevel,

@@ -19,14 +19,14 @@ export default function ShipQueueList({
         Shipyard Construction Queue ({queue.length})
       </h2>
       <div className="flex flex-col gap-3">
-        {queue.map((q, idx) => {
+        {queue.map((q) => {
           const config = availableShips[q.shipType];
           const shipName = config ? config.name : q.shipType;
           const isActive = q.status === "BUILDING";
 
           let progress = 0;
           let timeRemaining = "";
-          let currentBuildingQuantity = q.completedCount;
+          
 
           if (isActive && q.startedAt) {
             const start = new Date(q.startedAt).getTime();

@@ -5,7 +5,8 @@
     "cost": {
       "titanium": 5,
       "silicate": 2,
-      "isotope": 0
+      "isotope": 0,
+      "population": 1
     },
     "requirements": {
       "SHIPYARD": 1
@@ -19,7 +20,8 @@
     "cost": {
       "titanium": 2000,
       "silicate": 1000,
-      "isotope": 200
+      "isotope": 200,
+      "population": 5
     },
     "requirements": {
       "SHIPYARD": 4
@@ -33,7 +35,8 @@
     "cost": {
       "titanium": 8000,
       "silicate": 4000,
-      "isotope": 1000
+      "isotope": 1000,
+      "population": 20
     },
     "requirements": {
       "SHIPYARD": 7
@@ -47,7 +50,8 @@
     "cost": {
       "titanium": 10000,
       "silicate": 10000,
-      "isotope": 5000
+      "isotope": 5000,
+      "population": 50
     },
     "requirements": {
       "SHIPYARD": 3

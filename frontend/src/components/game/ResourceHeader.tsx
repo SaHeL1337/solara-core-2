@@ -19,6 +19,8 @@ const getIconForResource = (name: string, className?: string) => {
       return <IsotopeIcon className={className} />;
     case "flux":
       return <FluxIcon className={className} />;
+    case "population":
+      return <User className={className} />;
     default:
       return null;
   }
@@ -80,6 +82,11 @@ export default function ResourceHeader() {
       name: "Flux",
       value: user?.flux != null ? formatNumber(user.flux) : "0",
       color: "text-yellow-400",
+    },
+    {
+      name: "Population",
+      value: selectedPlanet ? `${formatNumber(selectedPlanet.population)} / ${formatNumber(selectedPlanet.populationCapacity)}` : "0 / 0",
+      color: "text-purple-400",
     },
   ];
 
