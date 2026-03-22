@@ -3,39 +3,39 @@
     "name": "Titanium Mine",
     "description": "Produces titanium",
     "cost": {
-      "titanium": "100 * 1.5 ^ (level - 1)",
-      "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)",
+      "titanium": "100 * 1.2 ^ (level - 1)",
+      "silicate": "100 * 1.2 ^ (level - 1)",
+      "isotope": "100 * 1.2 ^ (level - 1)",
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1200 * level",
+    "production": "1200 * 1.2 ^ level",
     "buildTimeInSeconds": "60 * level"
   },
   "SILICATE_MINE": {
     "name": "Silicate Mine",
     "description": "Produces silicate",
     "cost": {
-      "titanium": "100 * 1.5 ^ (level - 1)",
-      "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)",
+      "titanium": "100 * 1.2 ^ (level - 1)",
+      "silicate": "100 * 1.2 ^ (level - 1)",
+      "isotope": "100 * 1.2 ^ (level - 1)",
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1000 * level",
+    "production": "1000 * 1.2^ level",
     "buildTimeInSeconds": "60 * level"
   },
   "ISOTOPE_COLLECTOR": {
     "name": "Isotope Collector",
     "description": "Produces isotope",
     "cost": {
-      "titanium": "100 * 1.5 ^ (level - 1)",
-      "silicate": "100 * 1.5 ^ (level - 1)",
-      "isotope": "100 * 1.5 ^ (level - 1)",
+      "titanium": "100 * 1.2 ^ (level - 1)",
+      "silicate": "100 * 1.2 ^ (level - 1)",
+      "isotope": "100 * 1.2 ^ (level - 1)",
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1000 * level",
+    "production": "1000 * 1.2 ^ level",
     "buildTimeInSeconds": "60 * level"
   },
   "SHIPYARD": {

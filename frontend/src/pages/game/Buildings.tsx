@@ -343,8 +343,9 @@ export default function Buildings() {
                         {config.name}
                       </h3>
                     </div>
-                    <div className="text-[12px] text-right font-bold text-[#00E5FF] px-2 py-1">
-                      Level {level}/{config.maxLevel}
+                    <div className="text-[48px] text-right font-bold text-[#00E5FF] px-2 py-1">
+                      <span>{level}</span>
+                      <span className="text-[10px]">/{config.maxLevel}</span>
                     </div>
                   </div>
                 </div>
