@@ -341,6 +341,7 @@ export default function Buildings() {
                 {/* Costs & Time Panel */}
                 <div className="flex flex-wrap gap-1 mb-1">
                   {Object.entries(config.cost).map(([resource, costValue]) => {
+                    if (resource === "housing") return;
                     if (costValue > 0) {
                       let Icon = null;
                       if (resource === "titanium") Icon = TitaniumIcon;

@@ -88,5 +88,31 @@
     "maxLevel": 40,
     "production": 0,
     "buildTimeInSeconds": "60 * level"
+  },
+  "STORAGE": {
+    "name": "Storage",
+    "description": "Increase Storage for all resources",
+    "cost": {
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "0",
+      "housing": "100 * 1.5 ^ (level - 1)"
+    },
+    "maxLevel": 40,
+    "production": 0,
+    "buildTimeInSeconds": "60 * level"
+  },
+  "TRADING_HUB": {
+    "name": "Trading Hub",
+    "description": "Allows trading with other players",
+    "cost": {
+      "titanium": "100 * 1.5 ^ (level - 1)",
+      "silicate": "100 * 1.5 ^ (level - 1)",
+      "isotope": "0",
+      "housing": "100 * 1.5 ^ (level - 1)"
+    },
+    "maxLevel": 40,
+    "production": 0,
+    "buildTimeInSeconds": "60 * level"
   }
 }
