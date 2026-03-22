@@ -48,6 +48,7 @@ model Planet {
 
   population  Int @default(0)
   populationCapacity Int @default(0)
+  storageCapacity Int @default(10000)
 }
 
 model PlanetShip {

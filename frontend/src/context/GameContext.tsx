@@ -23,6 +23,7 @@ export interface Planet {
   };
   population: number;
   populationCapacity: number;
+  storageCapacity: number;
   // Add other planet properties as needed (e.g., coordinates, type)
 }
 

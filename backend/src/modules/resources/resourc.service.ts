@@ -39,13 +39,22 @@ export class ResourceService {
         "ISOTOPE_COLLECTOR",
       );
 
+      const currentTit = planet.spaceObject.titanium;
+      const currentSil = planet.spaceObject.silicate;
+      const currentIso = planet.spaceObject.isotope;
+      const cap = planet.storageCapacity;
+
+      const newTitanium = currentTit >= cap ? currentTit : Math.min(currentTit + titaniumRate * secondsElapsed, cap);
+      const newSilicate = currentSil >= cap ? currentSil : Math.min(currentSil + silicateRate * secondsElapsed, cap);
+      const newIsotope = currentIso >= cap ? currentIso : Math.min(currentIso + isotopeRate * secondsElapsed, cap);
+
       // 3. Update the space object
       const updatedSpaceObject = await tx.spaceObject.update({
         where: { id: planetId },
         data: {
-          titanium: { increment: titaniumRate * secondsElapsed },
-          silicate: { increment: silicateRate * secondsElapsed },
-          isotope: { increment: isotopeRate * secondsElapsed },
+          titanium: newTitanium,
+          silicate: newSilicate,
+          isotope: newIsotope,
           updatedAt: now,
         },
       });

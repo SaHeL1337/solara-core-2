@@ -51,6 +51,7 @@ export default function Buildings() {
   const [now, setNow] = useState(Date.now());
   const [fetchTime, setFetchTime] = useState(Date.now());
   const prevPlanetId = useRef<string | null>(null);
+  const lastFetchTriggerRef = useRef<number>(0);
 
   const fetchBuildings = useCallback(async () => {
     if (!selectedPlanet?.id) return;
@@ -104,8 +105,11 @@ export default function Buildings() {
         elapsedSec === q.durationSec ||
         (elapsedSec > q.durationSec && elapsedSec % 5 === 0)
       ) {
-        fetchBuildings();
-        refreshUser();
+        if (lastFetchTriggerRef.current !== elapsedSec) {
+          lastFetchTriggerRef.current = elapsedSec;
+          fetchBuildings();
+          refreshUser();
+        }
       }
     }
   }, [now, queue, fetchBuildings, refreshUser]);

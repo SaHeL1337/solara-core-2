@@ -200,6 +200,20 @@ export class JobService {
             });
           }
         }
+
+        // 5. Update Storage Capacity if STORAGE
+        if (queueItem.buildingType === "STORAGE") {
+          const config = getBuildingConfig("STORAGE", queueItem.targetLevel - 1, queueItem.targetLevel);
+          const capacityIncrease = config.productionIncrease || 0;
+          if (capacityIncrease > 0) {
+            await tx.planet.update({
+              where: { id: queueItem.planetId },
+              data: {
+                storageCapacity: { increment: capacityIncrease },
+              },
+            });
+          }
+        }
       });
       console.log(`Successfully processed completion for queue ${queueId}`);
     } catch (error) {

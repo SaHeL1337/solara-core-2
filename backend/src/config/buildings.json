@@ -99,7 +99,7 @@
       "population": "0"
     },
     "maxLevel": 40,
-    "production": 0,
+    "production": "50000 * level",
     "buildTimeInSeconds": "60 * level"
   },
   "TRADING_HUB": {

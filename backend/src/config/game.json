@@ -1,0 +1,19 @@
+{
+  "buildSpeedMultiplier": 1,
+  "resourceProductionMultiplier": 1,
+  "maxBuildQueue": 3,
+  "newPlayerSetup": {
+    "flux": 500,
+    "titanium": 500,
+    "silicate": 500,
+    "isotope": 500,
+    "buildings": {
+      "HOUSING_BLOCK": 1,
+      "GOVERNMENT_BUILDING": 1,
+      "STORAGE": 1
+    }
+  },
+  "asteroidsPerPlayer": 3,
+  "blackHolesPerPlayer": 1,
+  "npcPlanetsPerPlayer": 5
+}
