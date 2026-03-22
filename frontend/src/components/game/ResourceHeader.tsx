@@ -48,13 +48,19 @@ export default function ResourceHeader() {
   useEffect(() => {
     if (!selectedPlanet || !selectedPlanet.production) return;
 
+    let lastTick = performance.now();
+
     const interval = setInterval(() => {
+      const now = performance.now();
+      const deltaSeconds = (now - lastTick) / 1000;
+      lastTick = now;
+
       setVisualResources((prev) => {
         const capacity = selectedPlanet.storageCapacity || 10000;
         return {
-          titanium: Math.min(capacity, prev.titanium + selectedPlanet.production.titanium / 3600),
-          silicate: Math.min(capacity, prev.silicate + selectedPlanet.production.silicate / 3600),
-          isotope: Math.min(capacity, prev.isotope + selectedPlanet.production.isotope / 3600),
+          titanium: Math.min(capacity, prev.titanium + (selectedPlanet.production.titanium / 3600) * deltaSeconds),
+          silicate: Math.min(capacity, prev.silicate + (selectedPlanet.production.silicate / 3600) * deltaSeconds),
+          isotope: Math.min(capacity, prev.isotope + (selectedPlanet.production.isotope / 3600) * deltaSeconds),
         };
       });
     }, 1000);
