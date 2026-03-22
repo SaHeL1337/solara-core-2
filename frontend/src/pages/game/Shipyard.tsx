@@ -15,6 +15,7 @@ export default function Shipyard() {
   const [isQueueing, setIsQueueing] = useState(false);
   const [now, setNow] = useState(Date.now());
   const prevPlanetId = useRef<string | null>(null);
+  const lastFetchTriggerRef = useRef<number>(0);
 
   const fetchShips = useCallback(async () => {
     if (!selectedPlanet?.id) return;
@@ -73,16 +74,15 @@ export default function Shipyard() {
         (q.quantity - q.completedCount) * q.durationSec -
         (elapsedSec % q.durationSec);
 
-      if (elapsedSec > 0 && elapsedSec % q.durationSec === 0) {
-        // an individual ship finished in the queue
-        fetchShips();
-        refreshUser();
-      }
-
-      if (totalRemSec <= 0) {
-        // queue completely finished
-        fetchShips();
-        refreshUser();
+      if (
+        (elapsedSec > 0 && elapsedSec % q.durationSec === 0) ||
+        (totalRemSec <= 0 && elapsedSec % 5 === 0)
+      ) {
+        if (lastFetchTriggerRef.current !== elapsedSec) {
+          lastFetchTriggerRef.current = elapsedSec;
+          fetchShips();
+          refreshUser();
+        }
       }
     }
   }, [now, queue, fetchShips, refreshUser]);
