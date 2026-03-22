@@ -44,6 +44,21 @@
     "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))",
     "distancePerSecond": 20
   },
+  "SHIELD_BREAKER": {
+    "name": "SHIELD BREAKER",
+    "description": "Breaks shields of enemy planets.",
+    "cost": {
+      "titanium": 5000,
+      "silicate": 5000,
+      "isotope": 5000,
+      "population": 20
+    },
+    "requirements": {
+      "SHIPYARD": 8
+    },
+    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 5
+  },
   "COLONY_SHIP": {
     "name": "Colony Ship",
     "description": "Allows settling on new planets.",

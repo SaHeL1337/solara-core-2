@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
 import { Planet } from "@/context/GameContext";
+import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 
 type ShipConfig = {
   name: string;
@@ -24,6 +18,16 @@ type ShipListProps = {
   currentShips?: any[];
   onQueueShips: (type: string, quantity: number) => void;
   isQueueing: boolean;
+};
+
+const formatTime = (totalSeconds: number) => {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
 };
 
 export default function ShipList({
@@ -50,8 +54,7 @@ export default function ShipList({
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-slate-100 mb-4">Available Ships</h2>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {Object.entries(availableShips).map(([type, config]) => {
           const qty = quantities[type] || 1;
           const populationCost = config.cost.population || 0;
@@ -59,109 +62,147 @@ export default function ShipList({
             Math.floor(selectedPlanet.titanium / config.cost.titanium),
             Math.floor(selectedPlanet.silicate / config.cost.silicate),
             Math.floor(selectedPlanet.isotope / config.cost.isotope),
-            ...(populationCost > 0 ? [Math.floor(selectedPlanet.population / populationCost)] : [])
+            ...(populationCost > 0
+              ? [Math.floor(selectedPlanet.population / populationCost)]
+              : []),
           );
 
           const buildTime = config.buildTimeInSeconds;
-
           const meetsReqs = config.meetsRequirements;
           const currentCount = getShipCount(type);
 
+          const isAffordable = meetsReqs && maxQty >= qty;
+
           return (
-            <Card
+            <div
               key={type}
-              className={`bg-slate-900 border-slate-800 text-slate-100 flex flex-col ${!meetsReqs ? "opacity-60 grayscale-50" : ""}`}
+              className={`bg-[#1a1d24] border border-[#2a2e38] p-6 flex flex-col transition-colors hover:border-[#3b4252] ${
+                !meetsReqs ? "opacity-60 grayscale" : ""
+              }`}
             >
-              <CardHeader className="pb-2 relative">
-                <CardTitle className="flex justify-between items-center">
-                  <span>{config.name}</span>
-                  {meetsReqs && (
-                    <span className="text-xs bg-slate-800 text-slate-300 px-2 py-1 rounded-full border border-slate-700">
-                      Owned: {formatNumber(currentCount)}
-                    </span>
-                  )}
-                </CardTitle>
-                <div className="text-xs text-slate-400 italic mt-1">
-                  {config.description}
-                </div>
-                {!meetsReqs && (
-                  <div className="absolute top-2 right-2 text-xs bg-red-900/50 text-red-300 border border-red-800 px-2 py-1 rounded">
-                    Requirements Not Met
-                  </div>
-                )}
-              </CardHeader>
-              <CardContent className="flex flex-col flex-1 mt-2">
-                <div className={`grid ${config.cost.population ? "grid-cols-5" : "grid-cols-4"} gap-2 text-sm mb-4 bg-slate-950 p-3 rounded border border-slate-800`}>
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Build Time</span>
-                    <span>{formatNumber(buildTime * qty)}s</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Titanium</span>
-                    <span>{formatNumber(config.cost.titanium * qty)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Silicate</span>
-                    <span>{formatNumber(config.cost.silicate * qty)}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-slate-500 text-xs">Isotope</span>
-                    <span>{formatNumber(config.cost.isotope * qty)}</span>
-                  </div>
-                  {(config.cost.population || 0) > 0 && (
-                    <div className="flex flex-col">
-                      <span className="text-slate-500 text-xs">Population</span>
-                      <span>{formatNumber((config.cost.population || 0) * qty)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {!meetsReqs && (
-                  <div className="text-xs text-red-400 mt-2 mb-4 bg-red-950/30 p-2 rounded -mx-1">
-                    Requires:{" "}
-                    {Object.entries(config.requirements)
-                      .map(([reqType, reqLvl]) => `${reqType} Lv. ${reqLvl}`)
-                      .join(", ")}
-                  </div>
-                )}
-                {meetsReqs && (
-                  <div className="text-xs text-green-400 mt-2 mb-4 bg-green-950/30 p-2 rounded -mx-1">
-                    Requires:{" "}
-                    {Object.entries(config.requirements)
-                      .map(([reqType, reqLvl]) => `${reqType} Lv. ${reqLvl}`)
-                      .join(", ")}
-                  </div>
-                )}
-
-                <div className="mt-auto pt-2 grid grid-cols-2 gap-2">
-                  <input
-                    type="number"
-                    min="1"
-                    className="bg-slate-950 border border-slate-700 rounded px-3 py-2 text-center text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    value={quantities[type] || ""}
-                    placeholder="1"
-                    onChange={(e) => handleQuantityChange(type, e.target.value)}
-                    disabled={!meetsReqs || isQueueing}
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-24 h-24 bg-[#00E5FF]/5 border border-[#00E5FF]/20 overflow-hidden shrink-0">
+                  <img
+                    src={`/ships/${type.toLowerCase()}.png`}
+                    alt={config.name}
+                    className="w-full h-full object-cover"
                   />
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all disabled:opacity-50"
-                    onClick={() =>
-                      handleQuantityChange(type, maxQty.toString())
-                    }
-                    disabled={!meetsReqs || isQueueing}
-                  >
-                    Max ({formatNumber(maxQty)})
-                  </Button>
-                  <Button
-                    className="w-full col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm transition-all disabled:opacity-50"
-                    onClick={() => onQueueShips(type, qty)}
-                    disabled={!meetsReqs || isQueueing || qty < 1}
-                  >
-                    Build
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="text-[11px] font-bold text-[#00E5FF] px-2 py-1 text-right">
+                    <h3 className="text-lg font-bold text-white">
+                      {config.name}
+                    </h3>
+                  </div>
+                  <div className="text-[24px] text-right font-bold text-[#00E5FF] px-2 py-1">
+                    <span>{formatNumber(currentCount)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {!meetsReqs && (
+                <div className="text-[10px] text-red-400 mb-4 bg-red-950/30 p-2 font-mono uppercase tracking-widest border border-red-900">
+                  <span className="block mb-1 font-bold">Requirements:</span>
+                  {Object.entries(config.requirements)
+                    .map(([reqType, reqLvl]) => `${reqType} LV ${reqLvl}`)
+                    .join(", ")}
+                </div>
+              )}
+
+              {/* Costs & Time Panel */}
+              <div className="flex flex-wrap gap-1 mb-1 mt-auto">
+                {Object.entries(config.cost).map(([resource, costValue]) => {
+                  if (resource === "population") return null;
+                  if (costValue > 0) {
+                    let Icon = null;
+                    if (resource === "titanium") Icon = TitaniumIcon;
+                    if (resource === "silicate") Icon = SilicateIcon;
+                    if (resource === "isotope") Icon = IsotopeIcon;
+
+                    const totalCost = costValue * qty;
+                    const canAffordResource =
+                      (selectedPlanet as any)[resource] >= totalCost;
+
+                    return (
+                      <div
+                        key={resource}
+                        title={`${resource.charAt(0).toUpperCase() + resource.slice(1)}`}
+                        className="flex-1 bg-[#16181d] p-2 text-center min-w-[60px]"
+                      >
+                        <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1 flex items-center justify-center gap-1">
+                          {Icon && <Icon className="size-3" />}
+                        </div>
+                        <div
+                          className={`text-xs font-mono font-bold ${
+                            !canAffordResource
+                              ? "text-red-400"
+                              : "text-[#e2e8f0]"
+                          }`}
+                        >
+                          {formatNumber(totalCost)}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              <div className="flex flex-wrap gap-1 mb-4">
+                <div className="flex-1 bg-[#16181d] p-2 text-center min-w-[60px]">
+                  <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1">
+                    Time
+                  </div>
+                  <div className="text-xs font-mono font-bold text-[#e2e8f0]">
+                    {formatTime(buildTime * qty)}
+                  </div>
+                </div>
+                {(config.cost.population || 0) > 0 && (
+                  <div className="flex-1 bg-[#16181d] p-2 text-center min-w-[60px]">
+                    <div className="text-[10px] text-[#64748b] uppercase font-bold tracking-widest mb-1">
+                      Pop
+                    </div>
+                    <div
+                      className={`text-xs font-mono font-bold ${selectedPlanet.population < config.cost.population * qty ? "text-red-400" : "text-[#e2e8f0]"}`}
+                    >
+                      {formatNumber(config.cost.population * qty)}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-1 mt-auto">
+                <input
+                  type="number"
+                  min="1"
+                  className="bg-[#16181d] border border-[#2a2e38] px-3 py-2 text-center text-[#e2e8f0] font-mono focus:outline-none focus:border-[#00E5FF] transition-colors col-span-2 text-sm"
+                  value={quantities[type] || ""}
+                  placeholder="1"
+                  onChange={(e) => handleQuantityChange(type, e.target.value)}
+                  disabled={!meetsReqs || isQueueing}
+                />
+
+                <button
+                  disabled={!meetsReqs || isQueueing}
+                  className="bg-[#1a1d24] text-[#94a3b8] border border-[#2a2e38] hover:border-[#00E5FF] hover:text-[#00E5FF] transition-colors py-2 text-[10px] uppercase font-bold tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => handleQuantityChange(type, maxQty.toString())}
+                >
+                  Max ({formatNumber(maxQty)})
+                </button>
+
+                <button
+                  disabled={!isAffordable || isQueueing || qty < 1}
+                  className={`py-2 text-[10px] font-bold tracking-widest uppercase transition-all ${
+                    isAffordable && qty >= 1
+                      ? "bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]"
+                      : "bg-[#16181d] text-[#64748b] border border-[#00E5FF]/50 cursor-not-allowed opacity-80"
+                  }`}
+                  onClick={() => onQueueShips(type, qty)}
+                >
+                  Build
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>

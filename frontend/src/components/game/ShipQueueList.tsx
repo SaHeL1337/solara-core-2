@@ -1,4 +1,36 @@
-import { Card, CardContent } from "@/components/ui/card";
+const getFinishTimeString = (finishTimeMs: number) => {
+  const finishDate = new Date(finishTimeMs);
+  const now = new Date();
+  const isSameDay =
+    finishDate.getDate() === now.getDate() &&
+    finishDate.getMonth() === now.getMonth() &&
+    finishDate.getFullYear() === now.getFullYear();
+
+  const timeStr = finishDate.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  if (!isSameDay) {
+    const dateStr = finishDate.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    });
+    return `${dateStr} ${timeStr}`;
+  }
+  return timeStr;
+};
+
+const formatTime = (totalSeconds: number) => {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = Math.floor(totalSeconds % 60);
+  if (h > 0) {
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+};
 
 type ShipQueueListProps = {
   queue: any[];
@@ -15,24 +47,26 @@ export default function ShipQueueList({
 
   return (
     <div className="mb-8">
-      <h2 className="text-xl font-bold text-slate-100 mb-4">
+      <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-4">
         Shipyard Construction Queue ({queue.length})
       </h2>
-      <div className="flex flex-col gap-3">
-        {queue.map((q) => {
+      <div className="flex flex-col gap-4 mb-4">
+        {queue.map((q, idx) => {
           const config = availableShips[q.shipType];
           const shipName = config ? config.name : q.shipType;
           const isActive = q.status === "BUILDING";
+          const isFirst = idx === 0;
+          const imgPath = `/ships/${q.shipType.toLowerCase()}.png`;
 
           let progress = 0;
           let timeRemaining = "";
-          
+          let finishTimeString = "";
 
-          if (isActive && q.startedAt) {
+          if (q.startedAt) {
             const start = new Date(q.startedAt).getTime();
             const elapsedSec = Math.floor((now - start) / 1000);
 
-            // The time remaining represents the time to finish ALL remaining ships in this queue order
+            // Time remaining for ALL remaining ships in this queue order
             const remainingShips = q.quantity - q.completedCount;
             // The time already spent on the current partial ship
             const timeInCurrentShip = elapsedSec % q.durationSec;
@@ -48,57 +82,134 @@ export default function ShipQueueList({
               remainingShips * q.durationSec - timeInCurrentShip,
             );
 
-            const hours = Math.floor(totalRemSec / 3600);
-            const m = Math.floor((totalRemSec % 3600) / 60);
-            const s = totalRemSec % 60;
-            timeRemaining = hours > 0 ? `${hours}h ${m}m ${s}s` : `${m}m ${s}s`;
+            timeRemaining = formatTime(totalRemSec);
+
+            // Compute cumulative duration for earlier queue items to find true finish base
+            // For Shipyard it's tricky since elapsedSec is only meaningful for first item.
+
+            // To be accurate across all queue items:
+            const totalDurationSoFar = queue
+              .slice(0, idx + 1)
+              .reduce((acc, curr) => {
+                // For the currently active one, we only count its remaining time
+                if (curr.status === "BUILDING") {
+                  const currStart = new Date(curr.startedAt).getTime();
+                  const curElapsed = Math.floor((now - currStart) / 1000);
+                  const remShips = curr.quantity - curr.completedCount;
+                  const tInCurr = curElapsed % curr.durationSec;
+                  return Math.max(0, remShips * curr.durationSec - tInCurr);
+                }
+                return acc + curr.quantity * curr.durationSec;
+              }, 0);
+
+            const startBase = now;
+            const finishTimeMs = startBase + totalDurationSoFar * 1000;
+            finishTimeString = getFinishTimeString(finishTimeMs);
+
+            // For waiting queues, recalculate timeRemaining simply using full duration
+            if (!isActive) {
+              timeRemaining = formatTime(q.quantity * q.durationSec);
+            }
+          } else {
+            timeRemaining = formatTime(q.quantity * q.durationSec);
+
+            const totalDurationSoFar = queue
+              .slice(0, idx + 1)
+              .reduce((acc, curr) => {
+                if (curr.status === "BUILDING" && curr.startedAt) {
+                  const currStart = new Date(curr.startedAt).getTime();
+                  const curElapsed = Math.floor((now - currStart) / 1000);
+                  const remShips = curr.quantity - curr.completedCount;
+                  const tInCurr = curElapsed % curr.durationSec;
+                  return (
+                    acc + Math.max(0, remShips * curr.durationSec - tInCurr)
+                  );
+                }
+                return acc + curr.quantity * curr.durationSec;
+              }, 0);
+
+            const finishTimeMs = now + totalDurationSoFar * 1000;
+            finishTimeString = getFinishTimeString(finishTimeMs);
           }
 
-          return (
-            <Card
-              key={q.id}
-              className={`bg-slate-800 border-slate-700 text-slate-200 ${
-                isActive
-                  ? "border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
-                  : ""
-              }`}
-            >
-              <CardContent className="p-4 flex flex-col justify-center">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="font-semibold text-slate-100">
-                      {shipName} x{q.quantity}
+          if (isFirst) {
+            return (
+              <div
+                key={q.id || idx}
+                className="flex-1 bg-[#16181d] border-l-2 border-[#00E5FF] p-4 shadow-lg flex items-center gap-6"
+              >
+                <img
+                  src={imgPath}
+                  alt={shipName}
+                  className="w-16 h-16 object-cover border border-[#2a2e38]"
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="text-lg font-bold text-white mb-1">
+                        {shipName}
+                      </div>
+                      <div className="text-xs text-[#94a3b8]">
+                        Building #{q.completedCount + 1}
+                      </div>
                     </div>
-                    <div className="text-sm text-slate-400">
-                      {q.completedCount} / {q.quantity} Completed
+                    <div className="px-2 py-1 border border-[#00E5FF]/30 text-[#00E5FF] text-[10px] uppercase tracking-widest font-bold">
+                      {q.completedCount} / {q.quantity}
                     </div>
                   </div>
-                  <div className="text-xs font-mono bg-slate-900 px-2 py-1 rounded border border-slate-700 text-amber-400">
-                    {q.status}
+                  <div>
+                    <div className="flex justify-between text-xs mb-2">
+                      <span className="text-[#00E5FF] font-mono">
+                        {progress.toFixed(1)}%
+                      </span>
+                      <span className="text-[#e2e8f0] font-mono">
+                        {timeRemaining}{" "}
+                        {finishTimeString && (
+                          <span className="text-[#64748b]">
+                            ({finishTimeString})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-[#1e2028] overflow-hidden">
+                      <div
+                        className="h-full bg-[#00E5FF] transition-all duration-1000 ease-linear shadow-[0_0_10px_#00E5FF]"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
+              </div>
+            );
+          }
 
-                {isActive && q.startedAt && (
-                  <div className="mt-2 text-xs">
-                    <div className="flex justify-between text-slate-400 mb-1 font-mono">
-                      <span>
-                        Building #{q.completedCount + 1} ({progress.toFixed(1)}
-                        %)
-                      </span>
-                      <span className="text-blue-300">
-                        Total left: {timeRemaining}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-900 rounded-full h-2 border border-slate-700 overflow-hidden relative">
-                      <div
-                        className="bg-blue-500 h-full rounded-full transition-all duration-1000 ease-linear"
-                        style={{ width: `${progress}%` }}
-                      ></div>
-                    </div>
+          // Waiting Queue Blocks
+          return (
+            <div
+              key={q.id || idx}
+              className="flex-1 bg-[#1a1d24] border border-[#2a2e38] p-4 flex items-center gap-6 opacity-70"
+            >
+              <img
+                src={imgPath}
+                alt={shipName}
+                className="w-16 h-16 object-cover border border-[#2a2e38]"
+              />
+              <div className="flex-1 flex justify-between items-start">
+                <div>
+                  <div className="text-sm font-bold text-white mb-1">
+                    {shipName}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="px-2 py-1 bg-[#2a2e38] text-[#94a3b8] text-[10px] uppercase tracking-widest font-bold">
+                    {q.quantity}
+                  </div>
+                  <div className="text-[#64748b] text-[10px] font-mono">
+                    {timeRemaining} | {finishTimeString}
+                  </div>
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
