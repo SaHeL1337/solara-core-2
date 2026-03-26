@@ -28,4 +28,4 @@ pnpm-debug.log*
 Thumbs.db
 
 # Project Specific
-data/certbot/conf/renewal/solara-core.de.conf
+data/certbot/
