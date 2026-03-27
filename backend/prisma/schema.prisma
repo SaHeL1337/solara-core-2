@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
@@ -12,6 +12,7 @@ model User {
   flux          Int    @default(500)
   lastUpdate    DateTime @default(now()) // Used for lazy resource calculation
   planets       Planet[]
+  fleetMovements FleetMovement[]
 }
 
 enum SpaceObjectType {
@@ -32,6 +33,9 @@ model SpaceObject {
   updatedAt   DateTime        @default(now())
 
   planet      Planet?
+  
+  outgoingFleets FleetMovement[] @relation("OriginSpaceObject")
+  incomingFleets FleetMovement[] @relation("TargetSpaceObject")
 
   @@index([x, y])
 }
@@ -49,6 +53,56 @@ model Planet {
   population  Int @default(0)
   populationCapacity Int @default(0)
   storageCapacity Int @default(10000)
+}
+
+enum MissionType {
+  ATTACK
+  MINE
+  EXPLORE
+}
+
+enum FleetMovementStatus {
+  EN_ROUTE
+  RETURNING
+  COMPLETED
+}
+
+model FleetMovement {
+  id                String              @id @default(uuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id])
+  
+  originId          String?
+  origin            SpaceObject?         @relation("OriginSpaceObject", fields: [originId], references: [id], onDelete: SetNull)
+  
+  targetId          String?
+  target            SpaceObject?         @relation("TargetSpaceObject", fields: [targetId], references: [id], onDelete: SetNull)
+  
+  missionType       MissionType
+  status            FleetMovementStatus @default(EN_ROUTE)
+  
+  startTime         DateTime            @default(now())
+  arrivalTime       DateTime
+  returnArrivalTime DateTime?
+  
+  ships             FleetShip[]
+  resources         FleetResource[]
+}
+
+model FleetShip {
+  id              String        @id @default(uuid())
+  fleetMovementId String
+  fleetMovement   FleetMovement @relation(fields: [fleetMovementId], references: [id], onDelete: Cascade)
+  type            String
+  count           Int
+}
+
+model FleetResource {
+  id              String        @id @default(uuid())
+  fleetMovementId String
+  fleetMovement   FleetMovement @relation(fields: [fleetMovementId], references: [id], onDelete: Cascade)
+  type            String        // TITANIUM, SILICATE, ISOTOPE
+  amount          Int
 }
 
 model PlanetShip {

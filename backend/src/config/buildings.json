@@ -9,8 +9,8 @@
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1200 * 1.2 ^ level",
-    "buildTimeInSeconds": "60 * level"
+    "production": "12000 * 1.2 ^ level",
+    "buildTimeInSeconds": "20 * level"
   },
   "SILICATE_MINE": {
     "name": "Silicate Mine",
@@ -22,8 +22,8 @@
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1000 * 1.2^ level",
-    "buildTimeInSeconds": "60 * level"
+    "production": "10000 * 1.2^ level",
+    "buildTimeInSeconds": "20 * level"
   },
   "ISOTOPE_COLLECTOR": {
     "name": "Isotope Collector",
@@ -35,8 +35,8 @@
       "population": "5 + level"
     },
     "maxLevel": 40,
-    "production": "1000 * 1.2 ^ level",
-    "buildTimeInSeconds": "60 * level"
+    "production": "10000 * 1.2 ^ level",
+    "buildTimeInSeconds": "20 * level"
   },
   "SHIPYARD": {
     "name": "Shipyard",
@@ -48,7 +48,7 @@
     },
     "maxLevel": 30,
     "production": 0,
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "20 * level"
   },
   "SHIELD_GENERATOR": {
     "name": "Shield Generator",
@@ -61,7 +61,7 @@
     },
     "maxLevel": 25,
     "production": 0,
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "20 * level"
   },
   "HOUSING_BLOCK": {
     "name": "Housing Block",
@@ -74,7 +74,7 @@
     },
     "maxLevel": 60,
     "production": "1000 * level",
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "20 * level"
   },
   "GOVERNMENT_BUILDING": {
     "name": "Government Building",
@@ -87,7 +87,7 @@
     },
     "maxLevel": 40,
     "production": 0,
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "20 * level"
   },
   "STORAGE": {
     "name": "Storage",
@@ -100,7 +100,7 @@
     },
     "maxLevel": 40,
     "production": "50000 * level",
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "20 * level"
   },
   "TRADING_HUB": {
     "name": "Trading Hub",
@@ -113,6 +113,6 @@
     },
     "maxLevel": 40,
     "production": 0,
-    "buildTimeInSeconds": "60 * level"
+    "buildTimeInSeconds": "10 * level"
   }
 }

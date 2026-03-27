@@ -35,6 +35,9 @@ export default function Fleet() {
   const [availableShips, setAvailableShips] = useState<Record<string, any>>({});
   const [currentShips, setCurrentShips] = useState<ShipInventory[]>([]);
   const [selectedShips, setSelectedShips] = useState<Record<string, number>>({});
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchSuccess, setDispatchSuccess] = useState(false);
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
@@ -103,6 +106,30 @@ export default function Fleet() {
   const setMaxShipQuantity = (type: string) => {
     const max = currentShips.find((s) => s.type === type)?.count || 0;
     setSelectedShips((p) => ({ ...p, [type]: max }));
+  };
+
+  const handleDispatch = async () => {
+    if (!canSend || isDispatching) return;
+    setIsDispatching(true);
+    setDispatchError(null);
+    setDispatchSuccess(false);
+
+    try {
+      await api.post("/fleet/dispatch", {
+        originId: selectedPlanet.id,
+        targetId: targetInfo.id,
+        missionType,
+        ships: selectedShips,
+      });
+      setDispatchSuccess(true);
+      setSelectedShips({});
+      fetchShips();
+      setTimeout(() => setDispatchSuccess(false), 5000);
+    } catch (err: any) {
+      setDispatchError(err.response?.data?.error || "Dispatch failed");
+    } finally {
+      setIsDispatching(false);
+    }
   };
 
   if (!selectedPlanet) {
@@ -291,17 +318,30 @@ export default function Fleet() {
           </div>
           
           <button
-            disabled={!canSend}
+            disabled={!canSend || isDispatching}
+            onClick={handleDispatch}
             className={`px-6 py-2 text-[11px] font-bold tracking-widest uppercase transition-all whitespace-nowrap ${
-              canSend
+              canSend && !isDispatching
                 ? 'bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]'
                 : 'bg-[#1a1d24] text-[#64748b] border border-[#00E5FF]/30 cursor-not-allowed opacity-80'
             }`}
           >
-            <Send className="w-3.5 h-3.5 mr-2 inline" /> Dispatch
+            <Send className={`w-3.5 h-3.5 mr-2 inline ${isDispatching ? 'animate-pulse' : ''}`} /> 
+            {isDispatching ? 'Dispatching...' : 'Dispatch'}
           </button>
         </div>
       </div>
+
+      {dispatchError && (
+        <div className="bg-red-500/10 border border-red-500/50 p-3 text-red-400 text-xs font-bold tracking-widest uppercase text-center">
+          {dispatchError}
+        </div>
+      )}
+      {dispatchSuccess && (
+        <div className="bg-green-500/10 border border-green-500/50 p-3 text-green-400 text-xs font-bold tracking-widest uppercase text-center">
+          Fleet dispatched successfully!
+        </div>
+      )}
     </div>
   );
 }

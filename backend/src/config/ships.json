@@ -12,7 +12,8 @@
       "SHIPYARD": 1
     },
     "buildTimeInSeconds": "120 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 50
+    "distancePerSecond": 1,
+    "capacity": 10
   },
   "CRUISER": {
     "name": "Cruiser",
@@ -27,7 +28,8 @@
       "SHIPYARD": 4
     },
     "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 100
+    "distancePerSecond": 100,
+    "capacity": 1000
   },
   "BATTLESHIP": {
     "name": "Battleship",
@@ -42,7 +44,8 @@
       "SHIPYARD": 7
     },
     "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 20
+    "distancePerSecond": 20,
+    "capacity": 5000
   },
   "SHIELD_BREAKER": {
     "name": "SHIELD BREAKER",
@@ -57,7 +60,8 @@
       "SHIPYARD": 8
     },
     "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 5
+    "distancePerSecond": 5,
+    "capacity": 200
   },
   "COLONY_SHIP": {
     "name": "Colony Ship",
@@ -72,6 +76,7 @@
       "SHIPYARD": 3
     },
     "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 5
+    "distancePerSecond": 5,
+    "capacity": 20000
   }
 }

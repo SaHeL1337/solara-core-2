@@ -13,6 +13,7 @@ export type ShipConfigItem = {
   requirements: Record<string, number>;
   buildTimeInSeconds: string;
   distancePerSecond: number;
+  capacity: number;
 };
 
 export type CalculatedShipInfo = {
@@ -27,6 +28,7 @@ export type CalculatedShipInfo = {
   requirements: Record<string, number>;
   buildTimeInSeconds: number;
   distancePerSecond: number;
+  capacity: number;
   meetsRequirements: boolean;
 };
 
@@ -71,6 +73,7 @@ export const getShipConfig = (
       evaluateShipFormula(config.buildTimeInSeconds, shipyardLevel),
     ),
     distancePerSecond: config.distancePerSecond,
+    capacity: config.capacity,
     meetsRequirements: true, // evaluated by caller
   };
 };

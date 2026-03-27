@@ -61,3 +61,20 @@ export const getTargetInfo = async (
   return { targetObject, distance };
 };
 
+export const getSpaceObjectResources = async (id: string) => {
+  const obj = await prisma.spaceObject.findUnique({
+    where: { id },
+    select: {
+      titanium: true,
+      silicate: true,
+      isotope: true,
+    },
+  });
+
+  if (!obj) {
+    throw new Error("Space object not found");
+  }
+
+  return obj;
+};
+

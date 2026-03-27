@@ -188,15 +188,21 @@ export const generateMapObjects = (
           titanium:
             objType === SpaceObjectType.PLANET
               ? Math.floor(Math.random() * 500) + 100
-              : 0,
+              : objType === SpaceObjectType.ASTEROID
+                ? Math.floor(Math.random() * 2000) + 500
+                : 0,
           silicate:
             objType === SpaceObjectType.PLANET
               ? Math.floor(Math.random() * 500) + 100
-              : 0,
+              : objType === SpaceObjectType.ASTEROID
+                ? Math.floor(Math.random() * 1500) + 300
+                : 0,
           isotope:
             objType === SpaceObjectType.PLANET
               ? Math.floor(Math.random() * 500) + 100
-              : 0,
+              : objType === SpaceObjectType.ASTEROID
+                ? Math.floor(Math.random() * 800) + 100
+                : 0,
           x: p.x,
           y: p.y,
         });

@@ -1,6 +1,8 @@
-import { QueueStatus } from "../../generated/prisma/enums";
+import { QueueStatus, FleetMovementStatus, MissionType } from "../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { getBuildingConfig } from "../buildings/buildings.config.service";
+import { getShipConfig } from "../ships/ships.config.service";
+import { getBuildingLevel } from "../buildings/buildings.service";
 
 export class JobService {
   async processCompletedBuildings() {
@@ -149,6 +151,38 @@ export class JobService {
     }
   }
 
+  async processFleetMovements() {
+    try {
+      // 1. Process EN_ROUTE fleets that have arrived at their target
+      const arrivingFleets = await (prisma as any).fleetMovement.findMany({
+        where: {
+          status: FleetMovementStatus.EN_ROUTE,
+          arrivalTime: { lte: new Date() },
+        },
+        include: { ships: true, origin: true, target: true },
+      });
+
+      for (const fleet of arrivingFleets) {
+        await this.handleFleetArrivalAtTarget(fleet);
+      }
+
+      // 2. Process RETURNING fleets that have arrived back home
+      const returningFleets = await (prisma as any).fleetMovement.findMany({
+        where: {
+          status: FleetMovementStatus.RETURNING,
+          returnArrivalTime: { lte: new Date() },
+        },
+        include: { ships: true, resources: true },
+      });
+
+      for (const fleet of returningFleets) {
+        await this.handleFleetArrivalAtHome(fleet);
+      }
+    } catch (error) {
+      console.error("Error processing fleet movements:", error);
+    }
+  }
+
   private async completeBuildingQueue(queueId: string) {
     try {
       // Use a transaction to ensure atomic updates
@@ -219,6 +253,149 @@ export class JobService {
     } catch (error) {
       console.error(`Transaction failed for queue ${queueId}:`, error);
     }
+  }
+
+  private async handleFleetArrivalAtTarget(fleet: any) {
+    console.log(`Fleet ${fleet.id} arrived at target ${fleet.targetId} (Mission: ${fleet.missionType})`);
+    
+    await prisma.$transaction(async (tx: any) => {
+      const { id, missionType, targetId, ships } = fleet;
+
+      if (missionType === MissionType.MINE) {
+        if (!targetId) {
+          console.log(`  Mission ${id} target was destroyed before arrival. Skipping mining.`);
+        } else {
+          const target = await tx.spaceObject.findUnique({ where: { id: targetId } });
+          if (target) {
+            console.log(`  Executing mining mission at ${target.name}`);
+            
+            let totalCapacity = 0;
+            for (const ship of ships) {
+              const config = getShipConfig(ship.type, 0);
+              totalCapacity += config.capacity * ship.count;
+            }
+
+            const amountToMine = totalCapacity;
+            console.log(`  Total mining capacity: ${totalCapacity}, Target resources: Ti:${(target as any).titanium}, Si:${(target as any).silicate}, Is:${(target as any).isotope}`);
+            
+            const resources = ['titanium', 'silicate', 'isotope'];
+            let remainingToMine = amountToMine;
+            const collected: Record<string, number> = { titanium: 0, silicate: 0, isotope: 0 };
+
+            const shuffledResources = [...resources].sort(() => Math.random() - 0.5);
+            // Distribute amountToMine across resources that are available
+            for (const res of shuffledResources) {
+              const available = (target as any)[res];
+              const taken = Math.min(available, remainingToMine);
+              collected[res] = taken;
+              remainingToMine -= taken;
+            }
+
+            console.log(`  Fleet ${id} mined:`, collected);
+
+            await tx.spaceObject.update({
+              where: { id: targetId },
+              data: {
+                titanium: { decrement: collected.titanium },
+                silicate: { decrement: collected.silicate },
+                isotope: { decrement: collected.isotope },
+              },
+            });
+
+            const updatedTarget = await tx.spaceObject.findUnique({ where: { id: targetId } });
+            if (updatedTarget && updatedTarget.titanium <= 0 && updatedTarget.silicate <= 0 && updatedTarget.isotope <= 0) {
+              if (updatedTarget.type === "ASTEROID") {
+                console.log(`  Asteroid ${target.name} depleted and destroyed.`);
+                await tx.spaceObject.delete({ where: { id: targetId } });
+              }
+            }
+
+            for (const [type, amount] of Object.entries(collected)) {
+              if (amount > 0) {
+                console.log(`  Creating FleetResource: ${type.toUpperCase()} x ${amount}`);
+                await (tx as any).fleetResource.create({
+                  data: {
+                    fleetMovementId: id,
+                    type: type.toUpperCase(),
+                    amount,
+                  },
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const travelDuration = fleet.arrivalTime.getTime() - fleet.startTime.getTime();
+      const returnArrivalTime = new Date(Date.now() + travelDuration);
+      
+      await tx.fleetMovement.update({
+        where: { id },
+        data: {
+          status: FleetMovementStatus.RETURNING,
+          returnArrivalTime,
+        },
+      });
+    });
+  }
+
+  private async handleFleetArrivalAtHome(fleet: any) {
+    console.log(`Fleet ${fleet.id} arrived back at home ${fleet.originId}`);
+    await prisma.$transaction(async (tx: any) => {
+      const { originId, ships, resources } = fleet;
+
+      if (!originId) {
+        console.log(`  Fleet ${fleet.id} has no origin! Ships and resources lost.`);
+        return;
+      }
+
+      // 1. Return ships to planet
+      for (const ship of ships) {
+        await tx.planetShip.upsert({
+          where: { planetId_type: { planetId: originId, type: ship.type } },
+          update: { count: { increment: ship.count } },
+          create: { planetId: originId, type: ship.type, count: ship.count },
+        });
+      }
+
+      // 2. Add resources to planet (respect storage capacity)
+      const planet = await tx.planet.findUnique({
+        where: { id: originId },
+        include: { spaceObject: true },
+      });
+
+      if (planet) {
+        const capacity = planet.storageCapacity;
+        const currentTotal = planet.spaceObject.titanium + planet.spaceObject.silicate + planet.spaceObject.isotope;
+        let availableSpace = Math.max(0, capacity - currentTotal);
+
+        const addition: Record<string, number> = { titanium: 0, silicate: 0, isotope: 0 };
+        for (const res of resources) {
+          const type = res.type.toLowerCase();
+          const amount = Math.min(res.amount, availableSpace);
+          addition[type] += amount;
+          availableSpace -= amount;
+        }
+
+        console.log(`  Returned resources to ${planet.name}: titanium:${addition.titanium}, silicate:${addition.silicate}, isotope:${addition.isotope}`);
+
+        await tx.spaceObject.update({
+          where: { id: planet.id },
+          data: {
+            titanium: { increment: addition.titanium },
+            silicate: { increment: addition.silicate },
+            isotope: { increment: addition.isotope },
+          },
+        });
+      }
+
+      // 3. Mark as COMPLETED (or delete)
+      await (tx as any).fleetMovement.update({
+        where: { id: fleet.id },
+        data: { status: FleetMovementStatus.COMPLETED },
+      });
+      console.log(`  Fleet mission ${fleet.id} COMPLETED.`);
+    });
   }
 }
 

@@ -21,7 +21,7 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
     );
 
     // Map database enum types to frontend Map object types expected
-    const formattedObjects = spaceObjects.map((obj) => {
+    const formattedObjects = spaceObjects.map((obj: any) => {
       let mappedType = "planet";
       switch (obj.type) {
         case SpaceObjectType.PLANET:
@@ -43,6 +43,9 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
         y: obj.y,
         size: mappedType === "planet" ? 1.5 : 1,
         owner: (obj as any).planet?.owner?.id || undefined,
+        titanium: obj.titanium,
+        silicate: obj.silicate,
+        isotope: obj.isotope,
       };
     });
 
@@ -93,11 +96,31 @@ export const getTargetInfo = async (req: Request, res: Response) => {
       size: mappedType === "planet" ? 1.5 : 1,
       owner: (obj as any).planet?.owner?.id || undefined,
       distance: Number(distance.toFixed(2)),
+      titanium: obj.titanium,
+      silicate: obj.silicate,
+      isotope: obj.isotope,
     };
 
     return res.status(200).json({
       message: "Target info fetched successfully",
       data: formattedTarget,
+    });
+  } catch (error: any) {
+    return res.status(404).json({ error: error.message });
+  }
+};
+
+export const getSpaceObjectResources = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing space object ID" });
+    }
+
+    const resources = await mapService.getSpaceObjectResources(id);
+    return res.status(200).json({
+      message: "Resources fetched successfully",
+      data: resources,
     });
   } catch (error: any) {
     return res.status(404).json({ error: error.message });

@@ -221,3 +221,13 @@ export const addToQueue = async (
     },
   });
 };
+
+export const getBuildingLevel = async (
+  planetId: string,
+  buildingType: string,
+): Promise<number> => {
+  const building = await prisma.planetBuilding.findUnique({
+    where: { planetId_type: { planetId, type: buildingType } },
+  });
+  return building?.level || 0;
+};

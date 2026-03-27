@@ -1,6 +1,6 @@
 import { jobService } from "./modules/jobs/job.service";
 
-const POLL_INTERVAL_MS = 30000;
+const POLL_INTERVAL_MS = 5000;
 
 async function startWorker() {
   console.log("Starting background worker...");
@@ -16,6 +16,12 @@ async function startWorker() {
       await jobService.processCompletedShips();
     } catch (error) {
       console.error("Worker error processing ships:", error);
+    }
+
+    try {
+      await jobService.processFleetMovements();
+    } catch (error) {
+      console.error("Worker error processing fleet movements:", error);
     }
   }, POLL_INTERVAL_MS);
 }

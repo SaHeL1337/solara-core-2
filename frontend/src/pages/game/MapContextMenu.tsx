@@ -1,5 +1,7 @@
 import { Crosshair, Info, Pickaxe, ShieldAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 import { formatNumber } from "@/lib/utils";
 
@@ -27,6 +29,20 @@ interface MapContextMenuProps {
 export function MapContextMenu({ object }: MapContextMenuProps) {
   const navigate = useNavigate();
   const isAsteroid = object.type === "asteroid";
+  
+  const [resources, setResources] = useState({
+    titanium: object.titanium || 0,
+    silicate: object.silicate || 0,
+    isotope: object.isotope || 0,
+  });
+
+  useEffect(() => {
+    if (isAsteroid) {
+      api.get(`/map/objects/${object.id}/resources`).then((res) => {
+        setResources(res.data.data);
+      }).catch(err => console.error("Failed to fetch asteroid resources", err));
+    }
+  }, [object.id, isAsteroid]);
 
   return (
     <>
@@ -47,9 +63,9 @@ export function MapContextMenu({ object }: MapContextMenuProps) {
           {isAsteroid && (
             <div className="mt-4 flex gap-1 bg-zinc-900/50 p-2 border border-zinc-800/50">
               {[
-                { label: "titanium", icon: TitaniumIcon, val: object.titanium || 5000 },
-                { label: "silicate", icon: SilicateIcon, val: object.silicate || 3500 },
-                { label: "isotope", icon: IsotopeIcon, val: object.isotope || 1200 },
+                { label: "titanium", icon: TitaniumIcon, val: resources.titanium },
+                { label: "silicate", icon: SilicateIcon, val: resources.silicate },
+                { label: "isotope", icon: IsotopeIcon, val: resources.isotope },
               ].map((res) => (
                 <div key={res.label} className="flex-1 flex flex-col items-center">
                   <div className="flex items-center gap-1 mb-1">
