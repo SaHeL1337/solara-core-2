@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
 import api from "@/lib/api";
 import { formatNumber } from "@/lib/utils";
@@ -34,6 +35,19 @@ export default function Fleet() {
   const [availableShips, setAvailableShips] = useState<Record<string, any>>({});
   const [currentShips, setCurrentShips] = useState<ShipInventory[]>([]);
   const [selectedShips, setSelectedShips] = useState<Record<string, number>>({});
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const action = searchParams.get("action");
+    const x = searchParams.get("targetX");
+    const y = searchParams.get("targetY");
+
+    if (x) setTargetX(x);
+    if (y) setTargetY(y);
+    if (action === "MINE") setMissionType("MINE");
+    if (action === "ATTACK") setMissionType("ATTACK");
+    if (action === "EXPLORE") setMissionType("EXPLORE");
+  }, [searchParams]);
 
   const fetchTarget = useCallback(async () => {
     if (!selectedPlanet || !targetX || !targetY) return;

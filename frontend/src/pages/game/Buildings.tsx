@@ -280,6 +280,9 @@ export default function Buildings() {
             const status = getQueueStatus(type);
             const level = config.level;
             const buildTime = config.buildTimeInSeconds;
+            const levelInQueue = queue.filter(
+              (q) => q.buildingType === type,
+            ).length;
 
             // Determine if affordable and time until affordable
             const elapsedSec = (now - fetchTime) / 1000;
@@ -344,7 +347,10 @@ export default function Buildings() {
                       </h3>
                     </div>
                     <div className="text-[48px] text-right font-bold text-[#00E5FF] px-2 py-1">
-                      <span>{level}</span>
+                      <span>
+                        {level}
+                        {levelInQueue > 0 ? `+${levelInQueue}` : ""}
+                      </span>
                       <span className="text-[10px]">/{config.maxLevel}</span>
                     </div>
                   </div>

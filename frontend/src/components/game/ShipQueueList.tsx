@@ -1,3 +1,5 @@
+import React, { useState } from "react";
+
 const getFinishTimeString = (finishTimeMs: number) => {
   const finishDate = new Date(finishTimeMs);
   const now = new Date();
@@ -43,6 +45,8 @@ export default function ShipQueueList({
   availableShips,
   now,
 }: ShipQueueListProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (queue.length === 0) return null;
 
   return (
@@ -134,10 +138,10 @@ export default function ShipQueueList({
 
           if (isFirst) {
             return (
-              <div
-                key={q.id || idx}
-                className="flex-1 bg-[#16181d] border-l-2 border-[#00E5FF] p-4 shadow-lg flex items-center gap-6"
-              >
+              <React.Fragment key={q.id || idx}>
+                <div
+                  className="flex-1 bg-[#16181d] border-l-2 border-[#00E5FF] p-4 shadow-lg flex items-center gap-6"
+                >
                 <img
                   src={imgPath}
                   alt={shipName}
@@ -180,11 +184,54 @@ export default function ShipQueueList({
                   </div>
                 </div>
               </div>
-            );
-          }
+              {queue.length > 1 && (
+                <div
+                  className="flex items-center justify-between bg-[#1a1d24] border border-[#2a2e38] p-3 cursor-pointer hover:border-[#00E5FF]/50 transition-colors group"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="text-xs text-[#94a3b8] font-bold uppercase tracking-wider whitespace-nowrap">
+                      {queue.length - 1} Queued Orders
+                    </span>
+                    {!isExpanded && (
+                      <div
+                        className="flex items-center gap-2 overflow-hidden flex-nowrap"
+                        style={{
+                          maskImage: "linear-gradient(to right, black 80%, transparent 100%)",
+                          WebkitMaskImage: "linear-gradient(to right, black 80%, transparent 100%)",
+                        }}
+                      >
+                        {queue.slice(1).map((waitQ, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-1.5 bg-[#16181d] px-2 py-1 border border-[#2a2e38] rounded-sm shrink-0"
+                          >
+                            <img
+                              src={`/ships/${waitQ.shipType.toLowerCase()}.png`}
+                              alt={waitQ.shipType}
+                              className="w-4 h-4 object-cover"
+                            />
+                            <span className="text-[10px] text-[#00E5FF] font-mono leading-none">
+                              {waitQ.quantity}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[#00E5FF] px-2 text-[10px] tracking-widest font-bold uppercase flex items-center gap-2 shrink-0">
+                    {isExpanded ? "Collapse ▲" : "Expand ▼"}
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          );
+        }
 
-          // Waiting Queue Blocks
-          return (
+        if (!isExpanded) return null;
+
+        // Waiting Queue Blocks
+        return (
             <div
               key={q.id || idx}
               className="flex-1 bg-[#1a1d24] border border-[#2a2e38] p-4 flex items-center gap-6 opacity-70"

@@ -79,7 +79,7 @@ function MapInfoPanel() {
   });
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] bg-zinc-950/80 backdrop-blur-md border border-zinc-800 p-4 rounded-xl shadow-xl text-white pointer-events-auto">
+    <div className="absolute top-4 left-4 z-1000 bg-zinc-950/80 backdrop-blur-md border border-zinc-800 p-4 rounded-xl shadow-xl text-white pointer-events-auto">
       <h3 className="text-lg font-bold mb-2 tracking-wide text-zinc-100">
         Nav-Computer
       </h3>
@@ -149,19 +149,39 @@ function MapDataFetcher({
         );
 
         // Map backend formatted objects to add colors/details missing in backend
-        const parsed = (data.data as SpaceObject[]).map((obj) => ({
-          ...obj,
-          color:
-            obj.type === "planet"
-              ? PLANET_COLORS[Math.abs(obj.name.length) % PLANET_COLORS.length]
-              : obj.type === "asteroid"
-                ? "text-stone-500"
-                : "text-purple-500",
-          imageUrl:
-            obj.type === "planet" && obj.name.includes("Prime")
-              ? "/assets/map/solara_prime.svg"
-              : undefined,
-        }));
+        const parsed = (data.data as SpaceObject[]).map((obj) => {
+          let imageUrl;
+          if (obj.type === "planet") {
+            if (obj.name.includes("Prime")) {
+              imageUrl = "/assets/map/solara_prime.svg";
+            } else {
+              const variants = [
+                "/assets/map/planet_1.svg",
+                "/assets/map/planet_2.svg",
+                "/assets/map/planet_3.svg",
+                "/assets/map/planet_4.svg",
+              ];
+              // Simple hash based on name to get a consistent variety
+              const charSum = obj.name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              imageUrl = variants[charSum % variants.length];
+            }
+          } else if (obj.type === "asteroid") {
+            imageUrl = "/assets/map/asteroid.svg";
+          } else if (obj.type === "anomaly") {
+            imageUrl = "/assets/map/black_hole.svg";
+          }
+
+          return {
+            ...obj,
+            color:
+              obj.type === "planet"
+                ? PLANET_COLORS[Math.abs(obj.name.length) % PLANET_COLORS.length]
+                : obj.type === "asteroid"
+                  ? "text-stone-500"
+                  : "text-purple-500",
+            imageUrl,
+          };
+        });
 
         setMapObjects(parsed);
       } catch (error) {
@@ -225,7 +245,7 @@ export default function Map() {
         <SpaceGridLayer />
         <MapInfoPanel />
         {loadingMap && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-zinc-950/80 text-zinc-300 px-4 py-2 rounded-full text-sm border border-zinc-800 pointer-events-none">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 bg-zinc-950/80 text-zinc-300 px-4 py-2 rounded-full text-sm border border-zinc-800 pointer-events-none">
             Scanning Sector...
           </div>
         )}

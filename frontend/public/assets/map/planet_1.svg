@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <g>
+    <animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="120s" repeatCount="indefinite" />
+    <circle cx="50" cy="50" r="45" fill="none" stroke="#00E5FF" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.6" />
+    <circle cx="50" cy="50" r="42" fill="none" stroke="#00E5FF" stroke-width="1" />
+    <circle cx="50" cy="50" r="2" fill="#00E5FF" />
+    <circle cx="40" cy="40" r="1.5" fill="#00E5FF" opacity="0.8" />
+    <circle cx="60" cy="60" r="1.5" fill="#00E5FF" opacity="0.8" />
+  </g>
+</svg>
