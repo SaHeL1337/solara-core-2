@@ -1,7 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { getCalcAvailableShips, getShipConfig } from "./ships.config.service";
 import { ResourceService } from "../resources/resourc.service";
-import { QueueStatus } from "../../generated/prisma/enums";
+import { QueueStatus } from "../../generated/prisma";
 
 export const getShips = async (userId: string, planetId: string) => {
   const planet = await prisma.planet.findUnique({

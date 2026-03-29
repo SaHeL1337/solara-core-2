@@ -29,7 +29,7 @@ const PLANET_COLORS = [
 
 // Removed DUMMY_OBJECTS logic
 
-function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolean = false) {
+function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolean = false, isScanned: boolean = false) {
   // Scale factor: base 2 exponent of zoom.
   // e.g. zoom 0 = 1x, zoom -1 = 0.5x, zoom 1 = 2x
   const scale = Math.max(0.1, Math.abs(Math.pow(2, currentZoom)));
@@ -73,6 +73,8 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
         />
         {isMined && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00E5FF]/80 rounded-full animate-ping opacity-75"></div>}
         {isMined && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00E5FF] rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_8px_#00E5FF]"></div>}
+        {isScanned && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-emerald-500 animate-[ping_2s_linear_infinite] pointer-events-none"></div>}
+        {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg">Scanning</div>}
       </div>,
     );
   }
@@ -92,6 +94,8 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
       />
       {isMined && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E5FF] rounded-full animate-ping opacity-75"></div>}
       {isMined && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E5FF] rounded-full border border-zinc-950 shadow-[0_0_5px_#00E5FF]"></div>}
+      {isScanned && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-emerald-500 animate-[ping_2s_linear_infinite] pointer-events-none"></div>}
+      {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg">Scanning</div>}
     </div>,
   );
 }
@@ -263,6 +267,8 @@ export default function Map() {
 
   const [minersAvailable, setMinersAvailable] = useState<number | null>(null);
   const [activeMiningTargets, setActiveMiningTargets] = useState<Set<string>>(new Set());
+  const [activeScanTargets, setActiveScanTargets] = useState<Set<string>>(new Set());
+  const [scanTimings, setScanTimings] = useState<Record<string, { start: number; end: number }>>({});
 
   // Fetch miners
   useEffect(() => {
@@ -281,13 +287,28 @@ export default function Map() {
       try {
         const { data } = await api.get("/fleet/movements");
         const miningIds = new Set<string>();
+        const scanIds = new Set<string>();
+        const timings: Record<string, { start: number; end: number }> = {};
+
         const movements = Array.isArray(data.data) ? data.data : (data.data.active || []);
         movements.forEach((m: any) => {
           if (m.missionType === "MINE" && (m.status === "EN_ROUTE" || m.status === "RETURNING") && m.targetId) {
             miningIds.add(m.targetId);
           }
+          if (m.missionType === "SCAN" && m.status === "EN_ROUTE" && m.targetId) {
+            scanIds.add(m.targetId);
+            const startT = new Date(m.startTime).getTime();
+            const arrivalT = new Date(m.arrivalTime).getTime();
+            
+            // If multiple scans are heading to the same target, track the one that arrives last
+            if (!timings[m.targetId] || arrivalT > timings[m.targetId].end) {
+              timings[m.targetId] = { start: startT, end: arrivalT };
+            }
+          }
         });
         setActiveMiningTargets(miningIds);
+        setActiveScanTargets(scanIds);
+        setScanTimings(timings);
       } catch (err) {
         console.error(err);
       }
@@ -302,6 +323,15 @@ export default function Map() {
     setMinersAvailable((prev) => (prev !== null ? prev - usedMiners : null));
   };
 
+  const handleScannerStarted = (targetId: string, _: number, arrivalTimeStr?: string) => {
+    setActiveScanTargets((prev) => new Set(prev).add(targetId));
+    if (arrivalTimeStr) {
+      const start = Date.now();
+      const end = new Date(arrivalTimeStr).getTime();
+      setScanTimings(prev => ({ ...prev, [targetId]: { start, end } }));
+    }
+  };
+
   // Custom icons memoized
   const icons = useMemo(() => {
     const iconMap: Record<string, L.DivIcon> = {};
@@ -310,15 +340,16 @@ export default function Map() {
     mapObjects.forEach((obj) => {
       const scaledSize = obj.size * BASE_ICON_SIZE * scale;
       const isMined = activeMiningTargets.has(obj.id);
+      const isScanned = activeScanTargets.has(obj.id);
       iconMap[obj.id] = L.divIcon({
-        html: createIconMarkup(obj, zoom, isMined),
+        html: createIconMarkup(obj, zoom, isMined, isScanned),
         className: "bg-transparent border-none",
         iconSize: [scaledSize, scaledSize],
         iconAnchor: [scaledSize / 2, scaledSize / 2], // Center the icon
       });
     });
     return iconMap;
-  }, [zoom, mapObjects, activeMiningTargets]);
+  }, [zoom, mapObjects, activeMiningTargets, activeScanTargets]);
 
   return (
     <div className="flex-1 w-full relative bg-zinc-950 h-[calc(100vh-64px)] overflow-hidden">
@@ -357,7 +388,9 @@ export default function Map() {
               <div className="bg-zinc-950/95 border border-zinc-800 rounded-xl shadow-2xl p-4 text-white w-64 backdrop-blur-md">
                 <MapContextMenu
                   object={obj}
+                  scanTiming={scanTimings[obj.id]}
                   onMiningStarted={handleMiningStarted}
+                  onScannerStarted={handleScannerStarted}
                   onClose={() => {
                     // Handled inside via useMap().closePopup()
                   }}

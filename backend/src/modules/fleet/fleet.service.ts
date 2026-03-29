@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { MissionType, FleetMovementStatus } from "../../generated/prisma/enums";
+import { MissionType, FleetMovementStatus } from "../../generated/prisma";
 import { getShipConfig } from "../ships/ships.config.service";
 import { getBuildingLevel } from "../buildings/buildings.service";
 

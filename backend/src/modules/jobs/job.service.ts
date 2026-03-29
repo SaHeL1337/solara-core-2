@@ -2,7 +2,7 @@ import {
   QueueStatus,
   FleetMovementStatus,
   MissionType,
-} from "../../generated/prisma/enums";
+} from "../../generated/prisma";
 import { prisma } from "../../lib/prisma";
 import { getBuildingConfig } from "../buildings/buildings.config.service";
 import { getShipConfig } from "../ships/ships.config.service";
@@ -401,6 +401,130 @@ export class JobService {
               }),
               category: MessageCategory.MINING,
               tags: ["mining", "system"],
+            });
+          }
+        }
+      } else if (missionType === MissionType.SCAN) {
+        if (!targetId) {
+          console.log(`  Mission ${id} target was destroyed before arrival. Skipping scan.`);
+          await createMessage({
+            recipientId: fleet.userId,
+            title: "Fleet Log: Ghost Signal",
+            body: JSON.stringify({
+              type: "SCAN_FAIL",
+              message: "Your scanners arrived at the coordinates, but found only empty space.",
+            }),
+            category: MessageCategory.REPORT,
+            tags: ["scan", "system"],
+          });
+        } else {
+          const target = await tx.spaceObject.findUnique({
+            where: { id: targetId },
+            include: {
+              planet: {
+                include: {
+                  buildings: true,
+                  ships: true,
+                }
+              }
+            }
+          });
+
+          if (target && target.type === "PLANET" && target.planet) {
+            console.log(`  Executing SCAN mission at ${target.name}`);
+
+            const attackerScannersCount = ships.find((s: any) => s.type === "SCANNER")?.count || 0;
+            const defenderScannersCount = target.planet.ships.find((s: any) => s.type === "SCANNER")?.count || 0;
+
+            let reportData: any = null;
+            let losses = 0;
+
+            if (attackerScannersCount < defenderScannersCount) {
+              // Attacker loses all scanners, sees nothing
+              losses = attackerScannersCount;
+            } else {
+              // Attacker wins/draws. Losses formula
+              const damage = defenderScannersCount * 2 - attackerScannersCount;
+              losses = Math.max(0, Math.floor(damage));
+              losses = Math.min(attackerScannersCount, losses);
+
+              // Gather report data
+              const outgoingFleets = await tx.fleetMovement.findMany({
+                where: { originId: targetId, status: { not: "COMPLETED" } },
+                include: { target: true, ships: true }
+              });
+
+              reportData = {
+                resources: {
+                  titanium: target.titanium,
+                  silicate: target.silicate,
+                  isotope: target.isotope,
+                },
+                buildings: target.planet.buildings.map((b: any) => ({
+                  type: b.type,
+                  level: b.level
+                })),
+                shipsOnPlanet: target.planet.ships.map((s: any) => ({
+                  type: s.type,
+                  count: s.count
+                })),
+                shipsAway: outgoingFleets.map((f: any) => ({
+                  missionType: f.missionType,
+                  targetName: f.target?.name || "Unknown",
+                  ships: f.ships.map((s: any) => ({ type: s.type, count: s.count }))
+                })),
+                ownerId: target.planet.ownerId
+              };
+
+              // Upsert the scan report
+              await tx.scanReport.upsert({
+                where: {
+                  userId_planetId: {
+                    userId: fleet.userId,
+                    planetId: target.planet.id
+                  }
+                },
+                update: {
+                  data: reportData,
+                  createdAt: new Date()
+                },
+                create: {
+                  userId: fleet.userId,
+                  planetId: target.planet.id,
+                  data: reportData
+                }
+              });
+            }
+
+            // Deduct lost scanners from fleet
+            if (losses > 0) {
+              await tx.fleetMovement.update({
+                where: { id: fleet.id },
+                data: {
+                  ships: {
+                    updateMany: {
+                      where: { fleetMovementId: fleet.id, type: "SCANNER" },
+                      data: { count: { decrement: losses } }
+                    }
+                  }
+                }
+              });
+            }
+
+            // Create appropriate player message
+            const title = reportData ? `Scan Report: ${target.name}` : `Scan Failed: ${target.name}`;
+            await createMessage({
+              recipientId: fleet.userId,
+              title,
+              body: JSON.stringify({
+                type: reportData ? "SCAN_SUCCESS" : "SCAN_FAIL",
+                targetName: target.name,
+                targetId: target.planet.id,
+                losses,
+                reportData
+              }),
+              category: MessageCategory.REPORT,
+              tags: ["scan", "report"],
             });
           }
         }

@@ -78,3 +78,23 @@ export const getSpaceObjectResources = async (id: string) => {
   return obj;
 };
 
+export const getSpaceObjectReport = async (userId: string, targetId: string) => {
+  const planet = await prisma.planet.findFirst({
+    where: { spaceObject: { id: targetId } },
+  });
+
+  if (!planet) {
+    return null;
+  }
+
+  const report = await prisma.scanReport.findUnique({
+    where: {
+      userId_planetId: {
+        userId,
+        planetId: planet.id,
+      },
+    },
+  });
+
+  return report;
+};

@@ -14,6 +14,7 @@ model User {
   planets       Planet[]
   fleetMovements FleetMovement[]
   receivedMessages Message[] @relation("ReceivedMessages")
+  scanReports      ScanReport[]
 }
 
 
@@ -56,12 +57,16 @@ model Planet {
   population  Int @default(0)
   populationCapacity Int @default(0)
   storageCapacity Int @default(10000)
+  
+  scanReports     ScanReport[]
 }
 
 enum MissionType {
   ATTACK
   MINE
   EXPLORE
+  SCAN
+  SUPPORT
 }
 
 enum FleetMovementStatus {
@@ -190,4 +195,17 @@ enum MessageCategory {
   MINING
   ATTACK
   EXPLORE
+  REPORT
+}
+
+model ScanReport {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planetId  String
+  planet    Planet   @relation(fields: [planetId], references: [id], onDelete: Cascade)
+  data      Json
+  createdAt DateTime @default(now())
+
+  @@unique([userId, planetId])
 }

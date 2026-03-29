@@ -94,5 +94,21 @@
     "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
     "distancePerSecond": 5,
     "capacity": 20000
+  },
+  "SCANNER": {
+    "name": "Scanner Probe",
+    "description": "Fast and stealthy ship used to scan enemy planets for intel.",
+    "cost": {
+      "titanium": 1000,
+      "silicate": 500,
+      "isotope": 0,
+      "population": 1
+    },
+    "requirements": {
+      "SHIPYARD": 2
+    },
+    "buildTimeInSeconds": "60 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 500,
+    "capacity": 0
   }
 }

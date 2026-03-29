@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { MissionType, FleetMovementStatus } from "../../generated/prisma/enums";
+import { MissionType, FleetMovementStatus } from "../../generated/prisma";
 
 export class StatisticsService {
   async getMiningStatistics(userId: string) {

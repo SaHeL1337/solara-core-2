@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { ResourceService } from "../resources/resourc.service";
-import { SpaceObjectType } from "../../generated/prisma/enums";
+import { SpaceObjectType } from "../../generated/prisma";
 import { generateMapObjects } from "../map/map.generator";
 
 // function to create the user

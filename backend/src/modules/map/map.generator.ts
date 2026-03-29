@@ -1,4 +1,4 @@
-import { SpaceObjectType } from "../../generated/prisma/enums";
+import { SpaceObjectType } from "../../generated/prisma";
 
 type Point = { x: number; y: number };
 

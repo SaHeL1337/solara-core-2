@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as mapService from "./map.service";
-import { SpaceObjectType } from "../../generated/prisma/enums";
+import { SpaceObjectType } from "../../generated/prisma";
 
 export const getObjectsInBounds = async (req: Request, res: Response) => {
   try {
@@ -127,3 +127,24 @@ export const getSpaceObjectResources = async (req: Request, res: Response) => {
   }
 };
 
+export const getSpaceObjectReport = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ error: "Missing space object ID" });
+    }
+
+    const report = await mapService.getSpaceObjectReport(userId, id);
+    return res.status(200).json({
+      message: "Report fetched successfully",
+      data: report,
+    });
+  } catch (error: any) {
+    return res.status(404).json({ error: error.message });
+  }
+};
