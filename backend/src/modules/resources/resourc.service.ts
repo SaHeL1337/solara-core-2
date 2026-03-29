@@ -6,10 +6,10 @@ export class ResourceService {
    * Synchronizes planet resources based on time elapsed.
    * This should be called before ANY action that costs or checks resources.
    */
-  static async sync(planetId: string) {
-    return await prisma.$transaction(async (tx) => {
+  static async sync(planetId: string, tx?: any) {
+    const syncLogic = async (transaction: any) => {
       // 1. Fetch planet with building levels and its space object
-      const planet = await tx.planet.findUniqueOrThrow({
+      const planet = await transaction.planet.findUniqueOrThrow({
         where: { id: planetId },
         include: {
           buildings: true,
@@ -49,7 +49,7 @@ export class ResourceService {
       const newIsotope = currentIso >= cap ? currentIso : Math.min(currentIso + isotopeRate * secondsElapsed, cap);
 
       // 3. Update the space object
-      const updatedSpaceObject = await tx.spaceObject.update({
+      const updatedSpaceObject = await transaction.spaceObject.update({
         where: { id: planetId },
         data: {
           titanium: newTitanium,
@@ -63,7 +63,13 @@ export class ResourceService {
         ...planet,
         spaceObject: updatedSpaceObject,
       };
-    });
+    };
+
+    if (tx) {
+      return await syncLogic(tx);
+    } else {
+      return await prisma.$transaction(syncLogic);
+    }
   }
 
   public static getProductionRates(buildings: any[]) {

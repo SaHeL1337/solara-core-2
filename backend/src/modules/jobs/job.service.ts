@@ -1,4 +1,8 @@
-import { QueueStatus, FleetMovementStatus, MissionType } from "../../generated/prisma/enums";
+import {
+  QueueStatus,
+  FleetMovementStatus,
+  MissionType,
+} from "../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { getBuildingConfig } from "../buildings/buildings.config.service";
 import { getShipConfig } from "../ships/ships.config.service";
@@ -6,7 +10,6 @@ import { getBuildingLevel } from "../buildings/buildings.service";
 import { createMessage } from "../messages/messages.service";
 import { MessageCategory } from "../../generated/prisma";
 import { ResourceService } from "../resources/resourc.service";
-
 
 export class JobService {
   async processCompletedBuildings() {
@@ -226,7 +229,11 @@ export class JobService {
 
         // 4. Update Population and Capacity if HOUSING_BLOCK
         if (queueItem.buildingType === "HOUSING_BLOCK") {
-          const config = getBuildingConfig("HOUSING_BLOCK", queueItem.targetLevel - 1, queueItem.targetLevel);
+          const config = getBuildingConfig(
+            "HOUSING_BLOCK",
+            queueItem.targetLevel - 1,
+            queueItem.targetLevel,
+          );
           const capacityIncrease = config.productionIncrease || 0;
           if (capacityIncrease > 0) {
             await tx.planet.update({
@@ -241,7 +248,11 @@ export class JobService {
 
         // 5. Update Storage Capacity if STORAGE
         if (queueItem.buildingType === "STORAGE") {
-          const config = getBuildingConfig("STORAGE", queueItem.targetLevel - 1, queueItem.targetLevel);
+          const config = getBuildingConfig(
+            "STORAGE",
+            queueItem.targetLevel - 1,
+            queueItem.targetLevel,
+          );
           const capacityIncrease = config.productionIncrease || 0;
           if (capacityIncrease > 0) {
             await tx.planet.update({
@@ -260,33 +271,38 @@ export class JobService {
   }
 
   private async handleFleetArrivalAtTarget(fleet: any) {
-    console.log(`Fleet ${fleet.id} arrived at target ${fleet.targetId} (Mission: ${fleet.missionType})`);
-    
+    console.log(
+      `Fleet ${fleet.id} arrived at target ${fleet.targetId} (Mission: ${fleet.missionType})`,
+    );
+
     await prisma.$transaction(async (tx: any) => {
       const { id, missionType, targetId, ships } = fleet;
 
       if (missionType === MissionType.MINE) {
         if (!targetId) {
-          console.log(`  Mission ${id} target was destroyed before arrival. Skipping mining.`);
+          console.log(
+            `  Mission ${id} target was destroyed before arrival. Skipping mining.`,
+          );
           await createMessage({
             recipientId: fleet.userId,
             title: "Mining Mission: Target Lost",
             body: JSON.stringify({
               type: "MINE_FAIL",
-              message: "Your fleet arrived at the coordinates, but the asteroid was no longer there.",
+              message:
+                "Your fleet arrived at the coordinates, but the asteroid was no longer there.",
               targetX: fleet.targetX,
               targetY: fleet.targetY,
             }),
             category: MessageCategory.MINING,
             tags: ["mining", "system"],
           });
-
         } else {
-
-          const target = await tx.spaceObject.findUnique({ where: { id: targetId } });
+          const target = await tx.spaceObject.findUnique({
+            where: { id: targetId },
+          });
           if (target) {
             console.log(`  Executing mining mission at ${target.name}`);
-            
+
             let totalCapacity = 0;
             for (const ship of ships) {
               const config = getShipConfig(ship.type, 0);
@@ -294,13 +310,21 @@ export class JobService {
             }
 
             const amountToMine = totalCapacity;
-            console.log(`  Total mining capacity: ${totalCapacity}, Target resources: Ti:${(target as any).titanium}, Si:${(target as any).silicate}, Is:${(target as any).isotope}`);
-            
-            const resources = ['titanium', 'silicate', 'isotope'];
-            let remainingToMine = amountToMine;
-            const collected: Record<string, number> = { titanium: 0, silicate: 0, isotope: 0 };
+            console.log(
+              `  Total mining capacity: ${totalCapacity}, Target resources: Ti:${(target as any).titanium}, Si:${(target as any).silicate}, Is:${(target as any).isotope}`,
+            );
 
-            const shuffledResources = [...resources].sort(() => Math.random() - 0.5);
+            const resources = ["titanium", "silicate", "isotope"];
+            let remainingToMine = amountToMine;
+            const collected: Record<string, number> = {
+              titanium: 0,
+              silicate: 0,
+              isotope: 0,
+            };
+
+            const shuffledResources = [...resources].sort(
+              () => Math.random() - 0.5,
+            );
             // Distribute amountToMine across resources that are available
             for (const res of shuffledResources) {
               const available = (target as any)[res];
@@ -320,14 +344,24 @@ export class JobService {
               },
             });
 
-            const updatedTarget = await tx.spaceObject.findUnique({ where: { id: targetId } });
+            const updatedTarget = await tx.spaceObject.findUnique({
+              where: { id: targetId },
+            });
             let isDestroyed = false;
             let remainingResources = 0;
 
             if (updatedTarget) {
-              remainingResources = updatedTarget.titanium + updatedTarget.silicate + updatedTarget.isotope;
-              if (remainingResources <= 0 && updatedTarget.type === "ASTEROID") {
-                console.log(`  Asteroid ${target.name} depleted and destroyed.`);
+              remainingResources =
+                updatedTarget.titanium +
+                updatedTarget.silicate +
+                updatedTarget.isotope;
+              if (
+                remainingResources <= 0 &&
+                updatedTarget.type === "ASTEROID"
+              ) {
+                console.log(
+                  `  Asteroid ${target.name} depleted and destroyed.`,
+                );
                 await tx.spaceObject.delete({ where: { id: targetId } });
                 isDestroyed = true;
                 remainingResources = 0;
@@ -338,7 +372,9 @@ export class JobService {
 
             for (const [type, amount] of Object.entries(collected)) {
               if (amount > 0) {
-                console.log(`  Creating FleetResource: ${type.toUpperCase()} x ${amount}`);
+                console.log(
+                  `  Creating FleetResource: ${type.toUpperCase()} x ${amount}`,
+                );
                 await (tx as any).fleetResource.create({
                   data: {
                     fleetMovementId: id,
@@ -366,15 +402,14 @@ export class JobService {
               category: MessageCategory.MINING,
               tags: ["mining", "system"],
             });
-
           }
-
         }
       }
 
-      const travelDuration = fleet.arrivalTime.getTime() - fleet.startTime.getTime();
+      const travelDuration =
+        fleet.arrivalTime.getTime() - fleet.startTime.getTime();
       const returnArrivalTime = new Date(Date.now() + travelDuration);
-      
+
       await tx.fleetMovement.update({
         where: { id },
         data: {
@@ -391,12 +426,14 @@ export class JobService {
       const { originId, ships, resources } = fleet;
 
       if (!originId) {
-        console.log(`  Fleet ${fleet.id} has no origin! Ships and resources lost.`);
+        console.log(
+          `  Fleet ${fleet.id} has no origin! Ships and resources lost.`,
+        );
         return;
       }
 
       // 0. Sync planet resources first to ensure current state is up to date
-      await ResourceService.sync(originId);
+      await ResourceService.sync(originId, tx);
 
       // 1. Return ships to planet
       for (const ship of ships) {
@@ -415,18 +452,30 @@ export class JobService {
 
       if (planet) {
         const capacity = planet.storageCapacity;
-        const currentTotal = planet.spaceObject.titanium + planet.spaceObject.silicate + planet.spaceObject.isotope;
-        let availableSpace = Math.max(0, capacity - currentTotal);
+        const addition: Record<string, number> = {
+          titanium: 0,
+          silicate: 0,
+          isotope: 0,
+        };
 
-        const addition: Record<string, number> = { titanium: 0, silicate: 0, isotope: 0 };
+        const currentRes: Record<string, number> = {
+          titanium: planet.spaceObject.titanium,
+          silicate: planet.spaceObject.silicate,
+          isotope: planet.spaceObject.isotope,
+        };
+
         for (const res of resources) {
           const type = res.type.toLowerCase();
-          const amount = Math.min(res.amount, availableSpace);
+          const current = currentRes[type] || 0;
+          const available = Math.max(0, capacity - current);
+          const amount = Math.min(res.amount, available);
           addition[type] += amount;
-          availableSpace -= amount;
+          currentRes[type] += amount;
         }
 
-        console.log(`  Returned resources to ${planet.name}: titanium:${addition.titanium}, silicate:${addition.silicate}, isotope:${addition.isotope}`);
+        console.log(
+          `  Returned resources to ${planet.name}: titanium:${addition.titanium}, silicate:${addition.silicate}, isotope:${addition.isotope}`,
+        );
 
         await tx.spaceObject.update({
           where: { id: planet.id },
@@ -434,6 +483,7 @@ export class JobService {
             titanium: { increment: addition.titanium },
             silicate: { increment: addition.silicate },
             isotope: { increment: addition.isotope },
+            updatedAt: new Date(),
           },
         });
       }
