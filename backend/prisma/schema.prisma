@@ -80,6 +80,8 @@ model FleetMovement {
   
   targetId          String?
   target            SpaceObject?         @relation("TargetSpaceObject", fields: [targetId], references: [id], onDelete: SetNull)
+  targetX           Int?
+  targetY           Int?
   
   missionType       MissionType
   status            FleetMovementStatus @default(EN_ROUTE)

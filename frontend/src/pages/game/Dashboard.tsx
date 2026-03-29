@@ -13,6 +13,7 @@ import {
   Package,
   Ship,
 } from "lucide-react";
+import { DashboardStats } from "./DashboardStats";
 
 type FleetMovement = {
   id: string;
@@ -72,7 +73,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 pt-2">
         {movements.length === 0 ? (
           <div className="bg-[#1a1d24] border border-dashed border-[#2a2e38] p-12 flex flex-col items-center justify-center opacity-50 text-center">
             <Timer className="w-8 h-8 text-[#64748b] mb-3" />
@@ -93,6 +94,8 @@ export default function Dashboard() {
           ))
         )}
       </div>
+
+      <DashboardStats />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { getShipConfig } from "../ships/ships.config.service";
 import { getBuildingLevel } from "../buildings/buildings.service";
 import { createMessage } from "../messages/messages.service";
 import { MessageCategory } from "../../generated/prisma";
+import { ResourceService } from "../resources/resourc.service";
 
 
 export class JobService {
@@ -273,6 +274,8 @@ export class JobService {
             body: JSON.stringify({
               type: "MINE_FAIL",
               message: "Your fleet arrived at the coordinates, but the asteroid was no longer there.",
+              targetX: fleet.targetX,
+              targetY: fleet.targetY,
             }),
             category: MessageCategory.MINING,
             tags: ["mining", "system"],
@@ -318,11 +321,19 @@ export class JobService {
             });
 
             const updatedTarget = await tx.spaceObject.findUnique({ where: { id: targetId } });
-            if (updatedTarget && updatedTarget.titanium <= 0 && updatedTarget.silicate <= 0 && updatedTarget.isotope <= 0) {
-              if (updatedTarget.type === "ASTEROID") {
+            let isDestroyed = false;
+            let remainingResources = 0;
+
+            if (updatedTarget) {
+              remainingResources = updatedTarget.titanium + updatedTarget.silicate + updatedTarget.isotope;
+              if (remainingResources <= 0 && updatedTarget.type === "ASTEROID") {
                 console.log(`  Asteroid ${target.name} depleted and destroyed.`);
                 await tx.spaceObject.delete({ where: { id: targetId } });
+                isDestroyed = true;
+                remainingResources = 0;
               }
+            } else {
+              isDestroyed = true;
             }
 
             for (const [type, amount] of Object.entries(collected)) {
@@ -346,8 +357,11 @@ export class JobService {
                 type: "MINE_REPORT",
                 targetName: target.name,
                 collected,
+                remainingResources,
                 capacity: totalCapacity,
-                isDepleted: !updatedTarget,
+                isDepleted: isDestroyed,
+                targetX: target.x !== undefined ? target.x : fleet.targetX,
+                targetY: target.y !== undefined ? target.y : fleet.targetY,
               }),
               category: MessageCategory.MINING,
               tags: ["mining", "system"],
@@ -380,6 +394,9 @@ export class JobService {
         console.log(`  Fleet ${fleet.id} has no origin! Ships and resources lost.`);
         return;
       }
+
+      // 0. Sync planet resources first to ensure current state is up to date
+      await ResourceService.sync(originId);
 
       // 1. Return ships to planet
       for (const ship of ships) {

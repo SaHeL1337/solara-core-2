@@ -1,4 +1,20 @@
 {
+  "MINER": {
+    "name": "Miner",
+    "description": "Used for mining asteroids.",
+    "cost": {
+      "titanium": 5,
+      "silicate": 2,
+      "isotope": 0,
+      "population": 1
+    },
+    "requirements": {
+      "SHIPYARD": 1
+    },
+    "buildTimeInSeconds": "15 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 0.5,
+    "capacity": 1000
+  },
   "FIGHTER": {
     "name": "Fighter",
     "description": "Light combat ship for planetary defense and basic attacks.",
@@ -47,9 +63,9 @@
     "distancePerSecond": 20,
     "capacity": 5000
   },
-  "SHIELD_BREAKER": {
-    "name": "SHIELD BREAKER",
-    "description": "Breaks shields of enemy planets.",
+  "BOMBER": {
+    "name": "Bomber",
+    "description": "Breaks shields of enemy planets and deals heavy damage to structures.",
     "cost": {
       "titanium": 5000,
       "silicate": 5000,

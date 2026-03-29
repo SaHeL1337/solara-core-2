@@ -6,6 +6,7 @@ import mapRoutes from "../src/modules/map/map.routes";
 import shipsRoutes from "../src/modules/ships/ships.routes";
 import fleetRoutes from "../src/modules/fleet/fleet.routes";
 import messagesRoutes from "../src/modules/messages/messages.routes";
+import statisticsRoutes from "../src/modules/statistics/statistics.routes";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/map", mapRoutes);
 app.use("/api/ships", shipsRoutes);
 app.use("/api/fleet", fleetRoutes);
 app.use("/api/messages", messagesRoutes);
+app.use("/api/statistics", statisticsRoutes);
 
 
 // Public route

@@ -81,6 +81,8 @@ export class FleetService {
           userId,
           originId,
           targetId,
+          targetX: targetObject.x,
+          targetY: targetObject.y,
           missionType,
           status: FleetMovementStatus.EN_ROUTE,
           startTime,
