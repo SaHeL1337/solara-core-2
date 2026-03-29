@@ -11,9 +11,9 @@
     "requirements": {
       "SHIPYARD": 1
     },
-    "buildTimeInSeconds": "120 * (10 / (9 + shipyardLevel))",
+    "buildTimeInSeconds": "10 * (10 / (9 + shipyardLevel))",
     "distancePerSecond": 1,
-    "capacity": 10
+    "capacity": 100
   },
   "CRUISER": {
     "name": "Cruiser",

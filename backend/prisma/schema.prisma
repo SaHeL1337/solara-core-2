@@ -13,7 +13,10 @@ model User {
   lastUpdate    DateTime @default(now()) // Used for lazy resource calculation
   planets       Planet[]
   fleetMovements FleetMovement[]
+  receivedMessages Message[] @relation("ReceivedMessages")
 }
+
+
 
 enum SpaceObjectType {
   PLANET
@@ -162,4 +165,27 @@ enum QueueStatus {
   PENDING
   BUILDING
   COMPLETED
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  senderId    String   // "0" for system
+  recipientId String
+  recipient   User     @relation("ReceivedMessages", fields: [recipientId], references: [id])
+  title       String
+  body        String   // Can contain JSON or formatted text
+  isRead      Boolean  @default(false)
+  category    MessageCategory @default(SYSTEM)
+  tags        String[] // e.g., ["mining", "attack", "explore", "system"]
+  createdAt   DateTime @default(now())
+
+  @@index([recipientId, isRead])
+}
+
+enum MessageCategory {
+  SYSTEM
+  PLAYER
+  MINING
+  ATTACK
+  EXPLORE
 }

@@ -5,6 +5,7 @@ import planetsRoutes from "../src/modules/planets/planets.routes";
 import mapRoutes from "../src/modules/map/map.routes";
 import shipsRoutes from "../src/modules/ships/ships.routes";
 import fleetRoutes from "../src/modules/fleet/fleet.routes";
+import messagesRoutes from "../src/modules/messages/messages.routes";
 
 const app = express();
 
@@ -22,6 +23,8 @@ app.use("/api/planets", planetsRoutes);
 app.use("/api/map", mapRoutes);
 app.use("/api/ships", shipsRoutes);
 app.use("/api/fleet", fleetRoutes);
+app.use("/api/messages", messagesRoutes);
+
 
 // Public route
 app.get("/api/health", (req, res) => {

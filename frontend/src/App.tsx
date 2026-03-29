@@ -13,6 +13,7 @@ import Buildings from "@/pages/game/Buildings";
 import Shipyard from "@/pages/game/Shipyard";
 import Fleet from "@/pages/game/Fleet";
 import Map from "@/pages/game/Map";
+import Messages from "@/pages/game/Messages";
 
 export default function App() {
   return (
@@ -24,7 +25,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           {/* Add more public pages like /about or /features here */}
         </Route>
-
+ 
         {/* --- PRIVATE GAME SECTION --- */}
         {/* We wrap this in Clerk's SignedIn check */}
         <Route
@@ -39,9 +40,11 @@ export default function App() {
           <Route path="/shipyard" element={<Shipyard />} />
           <Route path="/fleet" element={<Fleet />} />
           <Route path="/map" element={<Map />} />
+          <Route path="/messages" element={<Messages />} />
           {/* If they try to go to /game, redirect to /dashboard */}
           <Route path="/game" element={<Navigate to="/dashboard" replace />} />
         </Route>
+
 
         {/* Redirect logged-out users trying to access game paths */}
         <Route

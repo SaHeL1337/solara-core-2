@@ -3,6 +3,9 @@ import { prisma } from "../../lib/prisma";
 import { getBuildingConfig } from "../buildings/buildings.config.service";
 import { getShipConfig } from "../ships/ships.config.service";
 import { getBuildingLevel } from "../buildings/buildings.service";
+import { createMessage } from "../messages/messages.service";
+import { MessageCategory } from "../../generated/prisma";
+
 
 export class JobService {
   async processCompletedBuildings() {
@@ -264,7 +267,19 @@ export class JobService {
       if (missionType === MissionType.MINE) {
         if (!targetId) {
           console.log(`  Mission ${id} target was destroyed before arrival. Skipping mining.`);
+          await createMessage({
+            recipientId: fleet.userId,
+            title: "Mining Mission: Target Lost",
+            body: JSON.stringify({
+              type: "MINE_FAIL",
+              message: "Your fleet arrived at the coordinates, but the asteroid was no longer there.",
+            }),
+            category: MessageCategory.MINING,
+            tags: ["mining", "system"],
+          });
+
         } else {
+
           const target = await tx.spaceObject.findUnique({ where: { id: targetId } });
           if (target) {
             console.log(`  Executing mining mission at ${target.name}`);
@@ -322,7 +337,24 @@ export class JobService {
                 });
               }
             }
+
+            // Create Mining Report Message
+            await createMessage({
+              recipientId: fleet.userId,
+              title: `Mining Report: ${target.name}`,
+              body: JSON.stringify({
+                type: "MINE_REPORT",
+                targetName: target.name,
+                collected,
+                capacity: totalCapacity,
+                isDepleted: !updatedTarget,
+              }),
+              category: MessageCategory.MINING,
+              tags: ["mining", "system"],
+            });
+
           }
+
         }
       }
 

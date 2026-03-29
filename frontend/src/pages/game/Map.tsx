@@ -33,18 +33,40 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number) {
   // Scale factor: base 2 exponent of zoom.
   // e.g. zoom 0 = 1x, zoom -1 = 0.5x, zoom 1 = 2x
   const scale = Math.max(0.1, Math.abs(Math.pow(2, currentZoom)));
-  const scaledSize = obj.size * BASE_ICON_SIZE * scale;
+  
+  const isUserPlanet = obj.type === "planet" && obj.name !== "Uncharted Planet";
+  const sizeMultiplier = isUserPlanet ? 1.5 : 1;
+  const scaledSize = obj.size * BASE_ICON_SIZE * scale * sizeMultiplier;
 
   if (obj.imageUrl) {
+    let customStyle: any = {};
+    let customClassName = "flex items-center justify-center drop-shadow-xl";
+
+    if (obj.type === "planet") {
+      if (isUserPlanet) {
+        customStyle = {
+          filter: `drop-shadow(0 0 10px rgba(0,229,255,1)) drop-shadow(0 0 20px rgba(0,229,255,0.6)) brightness(1.2)`,
+        };
+        customClassName = "flex items-center justify-center animate-pulse z-[1000]";
+      } else {
+        const coordHash = Math.abs(Math.sin(obj.x * 34.5 + obj.y * 89.2)) * 10000;
+        const hueRotate = Math.floor(coordHash % 360);
+        customStyle = {
+          filter: `hue-rotate(${hueRotate}deg) saturate(0.8) opacity(0.85)`,
+        };
+      }
+    }
+
     return renderToString(
       <div
-        className="flex items-center justify-center drop-shadow-xl"
+        className={customClassName}
         style={{ width: `${scaledSize}px`, height: `${scaledSize}px` }}
       >
         <img
           src={obj.imageUrl}
           alt={obj.name}
           className="w-full h-full object-contain pointer-events-none"
+          style={customStyle}
         />
       </div>,
     );
@@ -152,8 +174,8 @@ function MapDataFetcher({
         const parsed = (data.data as SpaceObject[]).map((obj) => {
           let imageUrl;
           if (obj.type === "planet") {
-            if (obj.name.includes("Prime")) {
-              imageUrl = "/assets/map/solara_prime.svg";
+            if (obj.name !== "Uncharted Planet") {
+              imageUrl = "/assets/map/planet_1.svg"; // Complex visual for inhabited planets
             } else {
               const variants = [
                 "/assets/map/planet_1.svg",
@@ -161,9 +183,9 @@ function MapDataFetcher({
                 "/assets/map/planet_3.svg",
                 "/assets/map/planet_4.svg",
               ];
-              // Simple hash based on name to get a consistent variety
-              const charSum = obj.name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-              imageUrl = variants[charSum % variants.length];
+              // Hash based on coordinates for consistent variety
+              const coordHash = Math.abs(Math.sin(obj.x * 12.9898 + obj.y * 78.233)) * 43758.5453;
+              imageUrl = variants[Math.floor(coordHash) % variants.length];
             }
           } else if (obj.type === "asteroid") {
             imageUrl = "/assets/map/asteroid.svg";
@@ -171,11 +193,15 @@ function MapDataFetcher({
             imageUrl = "/assets/map/black_hole.svg";
           }
 
+          // Compute color from coordinates for fallback UI
+          const colorHash = Math.abs(Math.sin(obj.x * 4.23 + obj.y * 11.1)) * 10000;
+          const planetColorIndex = Math.floor(colorHash) % PLANET_COLORS.length;
+
           return {
             ...obj,
             color:
               obj.type === "planet"
-                ? PLANET_COLORS[Math.abs(obj.name.length) % PLANET_COLORS.length]
+                ? PLANET_COLORS[planetColorIndex]
                 : obj.type === "asteroid"
                   ? "text-stone-500"
                   : "text-purple-500",
