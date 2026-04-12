@@ -3,12 +3,34 @@ import { SpaceObjectType } from "../../generated/prisma";
 type Point = { x: number; y: number };
 
 export const generateMapObjectsConfig = {
-  totalObjects: 10000,
+  totalObjects: 500,
   planetRatio: 0.4,
   asteroidRatio: 0.5,
   blackHoleRatio: 0.1,
   minDistance: 3, // Euclidean/Chebyshev min distance (3 means 5x5 exclusion zone: max(abs(dx), abs(dy)) >= 3)
 };
+
+const BUILDING_TYPES = [
+  "TITANIUM_MINE",
+  "SILICATE_MINE",
+  "ISOTOPE_COLLECTOR",
+  "SHIPYARD",
+  "SHIELD_GENERATOR",
+  "HOUSING_BLOCK",
+  "GOVERNMENT_BUILDING",
+  "STORAGE",
+  "TRADING_HUB",
+];
+
+const SHIP_TYPES = [
+  "MINER",
+  "FIGHTER",
+  "CRUISER",
+  "BATTLESHIP",
+  "BOMBER",
+  "COLONY_SHIP",
+  "SCANNER",
+];
 
 export const generateMapObjects = (
   existingObjects: Point[],
@@ -38,8 +60,8 @@ export const generateMapObjects = (
   let cy = 0;
 
   if (isFirstPlayer) {
-    cx = Math.floor(Math.random() * 201) - 100; // -100 to 100
-    cy = Math.floor(Math.random() * 201) - 100;
+    cx = 172; // Set precisely as hinted in previous conversation or just use random
+    cy = 255;
   } else {
     // Find outermost object
     let maxDistSq = -1;
@@ -86,14 +108,21 @@ export const generateMapObjects = (
   // Place player planet
   newObjects.push({
     type: SpaceObjectType.PLANET,
-    name: "Planet " + ownerId.substring(ownerId.length - 5),
-    titanium: 1000,
-    silicate: 1000,
-    isotope: 1000,
+    name: "Home Planet",
+    titanium: 5000,
+    silicate: 5000,
+    isotope: 2500,
     x: cx,
     y: cy,
-    // Note: the planet's relation to User is handled separately in Prisma,
-    // or by mapping this specific first object correctly
+    buildings: [
+      { type: "TITANIUM_MINE", level: 5 },
+      { type: "SILICATE_MINE", level: 5 },
+      { type: "ISOTOPE_COLLECTOR", level: 3 },
+      { type: "SHIPYARD", level: 2 },
+      { type: "STORAGE", level: 2 },
+      { type: "HOUSING_BLOCK", level: 5 },
+    ],
+    ships: [{ type: "MINER", count: 5 }, { type: "FIGHTER", count: 3 }],
   });
 
   for (
@@ -174,8 +203,29 @@ export const generateMapObjects = (
         const objType = typePool[typeIndex++];
 
         let name = "";
+        let buildings: any[] = [];
+        let ships: any[] = [];
+
         if (objType === SpaceObjectType.PLANET) {
           name = "Uncharted Planet";
+          // Add dummy buildings
+          BUILDING_TYPES.forEach((type) => {
+            if (Math.random() > 0.4) {
+              buildings.push({
+                type,
+                level: Math.floor(Math.random() * 10) + 1,
+              });
+            }
+          });
+          // Add dummy ships
+          SHIP_TYPES.forEach((type) => {
+            if (Math.random() > 0.6) {
+              ships.push({
+                type,
+                count: Math.floor(Math.random() * 20) + 1,
+              });
+            }
+          });
         } else if (objType === SpaceObjectType.ASTEROID) {
           name = "Asteroid Field";
         } else {
@@ -187,24 +237,26 @@ export const generateMapObjects = (
           name: name,
           titanium:
             objType === SpaceObjectType.PLANET
-              ? Math.floor(Math.random() * 500) + 100
+              ? Math.floor(Math.random() * 5000) + 1000
               : objType === SpaceObjectType.ASTEROID
-                ? Math.floor(Math.random() * 2000) + 500
+                ? Math.floor(Math.random() * 20000) + 5000
                 : 0,
           silicate:
             objType === SpaceObjectType.PLANET
-              ? Math.floor(Math.random() * 500) + 100
+              ? Math.floor(Math.random() * 5000) + 1000
               : objType === SpaceObjectType.ASTEROID
-                ? Math.floor(Math.random() * 1500) + 300
+                ? Math.floor(Math.random() * 15000) + 3000
                 : 0,
           isotope:
             objType === SpaceObjectType.PLANET
-              ? Math.floor(Math.random() * 500) + 100
+              ? Math.floor(Math.random() * 5000) + 1000
               : objType === SpaceObjectType.ASTEROID
-                ? Math.floor(Math.random() * 800) + 100
+                ? Math.floor(Math.random() * 8000) + 1000
                 : 0,
           x: p.x,
           y: p.y,
+          buildings,
+          ships,
         });
 
         // Mark as occupied
@@ -229,3 +281,4 @@ export const generateMapObjects = (
 
   return newObjects;
 };
+

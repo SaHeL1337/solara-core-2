@@ -328,7 +328,13 @@ export default function Map() {
     if (arrivalTimeStr) {
       const start = Date.now();
       const end = new Date(arrivalTimeStr).getTime();
-      setScanTimings(prev => ({ ...prev, [targetId]: { start, end } }));
+      setScanTimings(prev => {
+        const existing = prev[targetId];
+        if (!existing || end > existing.end) {
+          return { ...prev, [targetId]: { start, end } };
+        }
+        return prev;
+      });
     }
   };
 

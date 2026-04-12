@@ -1,12 +1,21 @@
+import { randomUUID } from "crypto";
 import { prisma } from "../../lib/prisma";
 import { ResourceService } from "../resources/resourc.service";
 import { SpaceObjectType } from "../../generated/prisma";
 import { generateMapObjects } from "../map/map.generator";
 
-// function to create the user
-
 export const createUser = async (id: string) => {
-  // 3. Initialize Game Data in your Prisma DB
+  // Ensure we have a SYSTEM user for NPC planets
+  const systemUser = await prisma.user.upsert({
+    where: { id: "SYSTEM" },
+    update: {},
+    create: {
+      id: "SYSTEM",
+      flux: 0,
+    },
+  });
+
+  // 1. Initialize the new Player User
   var user = await prisma.user.upsert({
     where: { id: id },
     update: {},
@@ -26,42 +35,83 @@ export const createUser = async (id: string) => {
   });
   const isFirstPlayer = existingObjects.length === 0;
 
-  const newObjects = generateMapObjects(existingObjects, isFirstPlayer, id);
+  const newObjectsRaw = generateMapObjects(existingObjects, isFirstPlayer, id);
 
-  // The very first object in the array is the player's new planet
-  const playerPlanetData = newObjects.shift();
-
-  if (!playerPlanetData) {
+  // Separate the player planet
+  const playerPlanetDataRaw = newObjectsRaw.shift();
+  if (!playerPlanetDataRaw) {
     throw new Error("Failed to generate player planet data");
   }
 
-  const planet = await prisma.spaceObject.create({
-    data: {
-      type: SpaceObjectType.PLANET,
-      name: playerPlanetData.name,
-      titanium: playerPlanetData.titanium,
-      silicate: playerPlanetData.silicate,
-      isotope: playerPlanetData.isotope,
-      x: playerPlanetData.x,
-      y: playerPlanetData.y,
-      planet: {
-        create: {
-          ownerId: id, // user ID
-        },
-      },
-    },
-  });
+  // Helper to process objects into lists for batch insertion
+  const spaceObjectsToCreate: any[] = [];
+  const planetsToCreate: any[] = [];
+  const planetBuildingsToCreate: any[] = [];
+  const planetShipsToCreate: any[] = [];
 
-  if (!planet) {
-    throw new Error("Failed to create planet");
-  }
-
-  // Bulk insert the remaining 9,999 objects
-  if (newObjects.length > 0) {
-    await prisma.spaceObject.createMany({
-      data: newObjects,
+  // Function to process a raw object (from generator) into database-ready chunks
+  const processObject = (raw: any, ownerId: string) => {
+    const objectId = randomUUID();
+    spaceObjectsToCreate.push({
+      id: objectId,
+      type: raw.type,
+      name: raw.name,
+      titanium: raw.titanium,
+      silicate: raw.silicate,
+      isotope: raw.isotope,
+      x: raw.x,
+      y: raw.y,
     });
-  }
+
+    if (raw.type === SpaceObjectType.PLANET) {
+      planetsToCreate.push({
+        id: objectId,
+        ownerId: ownerId,
+        population: 500,
+        populationCapacity: 1000,
+        storageCapacity: 10000,
+      });
+
+      if (raw.buildings) {
+        raw.buildings.forEach((b: any) => {
+          planetBuildingsToCreate.push({
+            planetId: objectId,
+            type: b.type,
+            level: b.level,
+          });
+        });
+      }
+
+      if (raw.ships) {
+        raw.ships.forEach((s: any) => {
+          planetShipsToCreate.push({
+            planetId: objectId,
+            type: s.type,
+            count: s.count,
+          });
+        });
+      }
+    }
+  };
+
+  // Process player planet first
+  processObject(playerPlanetDataRaw, id);
+
+  // Process the rest as SYSTEM-owned
+  newObjectsRaw.forEach((raw) => processObject(raw, "SYSTEM"));
+
+  // Now bulk insert everything in order
+  console.log(`Creating ${spaceObjectsToCreate.length} objects...`);
+  await prisma.spaceObject.createMany({ data: spaceObjectsToCreate });
+  
+  console.log(`Creating ${planetsToCreate.length} planets...`);
+  await prisma.planet.createMany({ data: planetsToCreate });
+
+  console.log(`Creating ${planetBuildingsToCreate.length} buildings...`);
+  await prisma.planetBuilding.createMany({ data: planetBuildingsToCreate });
+
+  console.log(`Creating ${planetShipsToCreate.length} ships...`);
+  await prisma.planetShip.createMany({ data: planetShipsToCreate });
 
   return user;
 };

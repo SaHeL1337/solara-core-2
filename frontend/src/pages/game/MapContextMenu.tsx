@@ -1,4 +1,11 @@
-import { Crosshair, Pickaxe, ShieldAlert, WifiHigh, Factory, Zap } from "lucide-react";
+import {
+  Crosshair,
+  Pickaxe,
+  ShieldAlert,
+  WifiHigh,
+  Factory,
+  Zap,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
@@ -28,15 +35,24 @@ interface MapContextMenuProps {
   position?: { x: number; y: number };
   scanTiming?: { start: number; end: number };
   onMiningStarted?: (targetId: string, usedMiners: number) => void;
-  onScannerStarted?: (targetId: string, usedScanners: number, arrivalTimeStr: string) => void;
+  onScannerStarted?: (
+    targetId: string,
+    usedScanners: number,
+    arrivalTimeStr: string,
+  ) => void;
   onClose?: () => void;
 }
 
-export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerStarted }: MapContextMenuProps) {
+export function MapContextMenu({
+  object,
+  scanTiming,
+  onMiningStarted,
+  onScannerStarted,
+}: MapContextMenuProps) {
   const map = useMap();
   const navigate = useNavigate();
   const { selectedPlanet } = useGame();
-  
+
   const isAsteroid = object.type === "asteroid";
   const isPlanet = object.type === "planet";
 
@@ -48,13 +64,18 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
 
   const [minersAvailable, setMinersAvailable] = useState<number | null>(null);
   const [minerCapacity, setMinerCapacity] = useState<number>(1000);
-  
-  const [scannersAvailable, setScannersAvailable] = useState<number | null>(null);
+
+  const [scannersAvailable, setScannersAvailable] = useState<number | null>(
+    null,
+  );
   const [scanReport, setScanReport] = useState<any>(null);
 
   // Distance calculation
   const distance = selectedPlanet
-    ? Math.sqrt(Math.pow(object.x - selectedPlanet.x, 2) + Math.pow(object.y - selectedPlanet.y, 2))
+    ? Math.sqrt(
+        Math.pow(object.x - selectedPlanet.x, 2) +
+          Math.pow(object.y - selectedPlanet.y, 2),
+      )
     : 0;
 
   useEffect(() => {
@@ -77,7 +98,7 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
         .then((res) => {
           const data = res.data.data;
           const ships = data.current;
-          
+
           if (isAsteroid) {
             const miner = ships.find((s: any) => s.type === "MINER");
             setMinersAvailable(miner ? miner.count : 0);
@@ -97,13 +118,14 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
 
   useEffect(() => {
     if (isPlanet && selectedPlanet) {
-      api.get(`/map/objects/${object.id}/report`)
-        .then(res => {
+      api
+        .get(`/map/objects/${object.id}/report`)
+        .then((res) => {
           if (res.data.data && res.data.data.data) {
             setScanReport(res.data.data.data);
           }
         })
-        .catch(err => {
+        .catch((err) => {
           // Ignore 404s (no report exists yet)
           if (err.response?.status !== 404) {
             console.error("Failed to fetch scan report", err);
@@ -128,7 +150,9 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
         missionType: "MINE",
         ships: { MINER: validToSend },
       });
-      toast.success(`Dispatched ${validToSend} MINERs successfully to ${object.name}!`);
+      toast.success(
+        `Dispatched ${validToSend} MINERs successfully to ${object.name}!`,
+      );
       setMinersAvailable((prev) => (prev || 0) - validToSend);
       if (onMiningStarted) onMiningStarted(object.id, validToSend);
       map.closePopup();
@@ -153,17 +177,22 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
         missionType: "SCAN",
         ships: { SCANNER: scanAmount },
       });
-      toast.success(`Dispatched ${scanAmount} Scanner Probes to ${object.name}!`);
+      toast.success(
+        `Dispatched ${scanAmount} Scanner Probes to ${object.name}!`,
+      );
       setScannersAvailable((prev) => (prev || 0) - scanAmount);
-      if (onScannerStarted) onScannerStarted(object.id, scanAmount, res.data.data.arrivalTime);
-      map.closePopup();
+      if (onScannerStarted)
+        onScannerStarted(object.id, scanAmount, res.data.data.arrivalTime);
+      // Popup stays open as requested
     } catch (e: any) {
       console.error("Scan dispatch failed", e);
       toast.error(e.response?.data?.error || "Scan dispatch failed");
     }
   };
 
-  const isSelf = object.owner === (selectedPlanet as any)?.ownerId && object.owner !== undefined;
+  const isSelf =
+    object.owner === (selectedPlanet as any)?.ownerId &&
+    object.owner !== undefined;
 
   const [timeLeft, setTimeLeft] = useState(0);
   const [lastScanEndTime, setLastScanEndTime] = useState<number | null>(null);
@@ -175,46 +204,58 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
         setLastScanEndTime(null);
         // Small delay to allow backend to finish processing
         setTimeout(() => {
-          api.get(`/map/objects/${object.id}/report`)
-            .then(res => {
+          api
+            .get(`/map/objects/${object.id}/report`)
+            .then((res) => {
               if (res.data.data && res.data.data.data) {
                 setScanReport(res.data.data.data);
               }
-            }).catch(console.error);
+            })
+            .catch(console.error);
         }, 1000);
       }
       return;
     }
-    
+
     setLastScanEndTime(scanTiming.end);
-    
+
     const interval = setInterval(() => {
       const now = Date.now();
       const remaining = Math.max(0, Math.floor((scanTiming.end - now) / 1000));
       setTimeLeft(remaining);
-      
+
       if (remaining === 0) {
         clearInterval(interval);
         // Scan just finished! Trigger re-fetch
         setTimeout(() => {
-          api.get(`/map/objects/${object.id}/report`)
-            .then(res => {
+          api
+            .get(`/map/objects/${object.id}/report`)
+            .then((res) => {
               if (res.data.data && res.data.data.data) {
                 setScanReport(res.data.data.data);
               }
-            }).catch(console.error);
+            })
+            .catch(console.error);
         }, 1500);
       }
     }, 1000);
 
     const now = Date.now();
     setTimeLeft(Math.max(0, Math.floor((scanTiming.end - now) / 1000)));
-    
+
     return () => clearInterval(interval);
   }, [scanTiming, object.id]);
 
-  const progress = scanTiming 
-    ? Math.min(100, Math.max(0, ((Date.now() - scanTiming.start) / (scanTiming.end - scanTiming.start)) * 100))
+  const progress = scanTiming
+    ? Math.min(
+        100,
+        Math.max(
+          0,
+          ((Date.now() - scanTiming.start) /
+            Math.max(1, scanTiming.end - scanTiming.start)) *
+            100,
+        ),
+      )
     : 0;
 
   return (
@@ -232,21 +273,35 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
               [{object.x}, {object.y}]
             </p>
           </div>
-          
+
           {selectedPlanet && (
             <p className="text-xs text-zinc-500 mt-1">
-              Distance: <span className="text-zinc-300 font-mono">{distance.toFixed(1)}</span>
+              Distance:{" "}
+              <span className="text-zinc-300 font-mono">
+                {distance.toFixed(1)}
+              </span>
             </p>
           )}
 
           {isAsteroid && (
             <div className="mt-4 flex gap-1 bg-zinc-900/50 p-2 border border-zinc-800/50">
               {[
-                { label: "titanium", icon: TitaniumIcon, val: resources.titanium },
-                { label: "silicate", icon: SilicateIcon, val: resources.silicate },
+                {
+                  label: "titanium",
+                  icon: TitaniumIcon,
+                  val: resources.titanium,
+                },
+                {
+                  label: "silicate",
+                  icon: SilicateIcon,
+                  val: resources.silicate,
+                },
                 { label: "isotope", icon: IsotopeIcon, val: resources.isotope },
               ].map((res) => (
-                <div key={res.label} className="flex-1 flex flex-col items-center">
+                <div
+                  key={res.label}
+                  className="flex-1 flex flex-col items-center"
+                >
                   <div className="flex items-center gap-1 mb-1">
                     <res.icon className="size-3" />
                   </div>
@@ -259,66 +314,126 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
           )}
 
           {scanTiming && scanTiming.end > Date.now() && (
-            <div className="mt-4 bg-emerald-900/10 p-3 border border-emerald-500/50 rounded-lg">
-              <div className="flex justify-between items-center mb-1 text-emerald-400">
-                <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                  <WifiHigh className="w-3 h-3 animate-pulse" /> Active Scan
+            <div className="mt-4 bg-emerald-900/10 p-3 border border-emerald-500/30 rounded-lg backdrop-blur-sm">
+              <div className="flex justify-between items-center mb-1.5 text-emerald-400">
+                <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                  <WifiHigh className="w-3.5 h-3.5 animate-pulse" /> Scanning...
                 </span>
-                <span className="text-[10px] font-mono">{timeLeft}s</span>
+                <span className="text-[10px] font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                  {timeLeft}s
+                </span>
               </div>
-              <div className="w-full bg-zinc-900 rounded-full h-1 mt-2 overflow-hidden border border-emerald-900/30">
-                <div 
-                  className="bg-emerald-400 h-1 rounded-full transition-all duration-1000 ease-linear" 
+              <div className="w-full bg-zinc-950 rounded-full h-1.5 mt-2 overflow-hidden border border-emerald-900/40 relative">
+                <div
+                  className="bg-emerald-400 h-full rounded-full transition-all duration-1000 ease-linear shadow-[0_0_8px_rgba(52,211,153,0.5)]"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
             </div>
           )}
 
-          {isPlanet && scanReport && (!scanTiming || scanTiming.end <= Date.now()) && (
-            <div className="mt-4 bg-zinc-900/50 p-2 border border-emerald-900/50 rounded-lg">
-              <div className="flex items-center gap-1 mb-2 text-emerald-400">
-                <WifiHigh className="w-3 h-3" /> 
-                <span className="text-[10px] font-bold uppercase tracking-wider">Intercepted Intel</span>
-              </div>
-              <div className="flex gap-1 mb-2">
-                {[
-                  { label: "titanium", icon: TitaniumIcon, val: scanReport.resources?.titanium || 0 },
-                  { label: "silicate", icon: SilicateIcon, val: scanReport.resources?.silicate || 0 },
-                  { label: "isotope", icon: IsotopeIcon, val: scanReport.resources?.isotope || 0 },
-                ].map((res) => (
-                  <div key={res.label} className="flex-1 flex flex-col items-center">
-                    <div className="flex items-center gap-1 mb-1">
-                      <res.icon className="size-3" />
+          {isPlanet &&
+            scanReport &&
+            (!scanTiming || scanTiming.end <= Date.now()) && (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-1.5 px-1">
+                  <WifiHigh className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#64748b]">
+                    Intercepted Intel
+                  </span>
+                </div>
+
+                <div className="flex gap-1 bg-zinc-900/50 p-2 border border-zinc-800/50">
+                  {[
+                    {
+                      label: "titanium",
+                      icon: TitaniumIcon,
+                      val: scanReport.resources?.titanium || 0,
+                    },
+                    {
+                      label: "silicate",
+                      icon: SilicateIcon,
+                      val: scanReport.resources?.silicate || 0,
+                    },
+                    {
+                      label: "isotope",
+                      icon: IsotopeIcon,
+                      val: scanReport.resources?.isotope || 0,
+                    },
+                  ].map((res) => (
+                    <div
+                      key={res.label}
+                      className="flex-1 flex flex-col items-center"
+                    >
+                      <div className="flex items-center gap-1 mb-1">
+                        <res.icon className="size-3" />
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-[#e2e8f0]">
+                        {formatNumber(res.val)}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-[#e2e8f0]">
-                      {formatNumber(res.val)}
-                    </span>
+                  ))}
+                </div>
+
+                {(scanReport.buildings?.length > 0 ||
+                  scanReport.shipsOnPlanet?.length > 0) && (
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {scanReport.buildings?.length > 0 && (
+                      <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
+                        <div className="text-[8px] font-bold text-[#64748b] uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                          <Factory className="w-2.5 h-2.5" /> Structures
+                        </div>
+                        <div className="space-y-1">
+                          {scanReport.buildings.map((b: any) => (
+                            <div
+                              key={b.type}
+                              className="flex justify-between items-center text-[9px]"
+                            >
+                              <span className="text-zinc-500 truncate mr-1">
+                                {b.type.split("_")[0]}
+                              </span>
+                              <span className="text-[#00E5FF] font-mono font-bold">
+                                {b.level}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {scanReport.shipsOnPlanet?.length > 0 && (
+                      <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
+                        <div className="text-[8px] font-bold text-red-900/80 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                          <ShieldAlert className="w-2.5 h-2.5" /> Garrison
+                        </div>
+                        <div className="space-y-1">
+                          {scanReport.shipsOnPlanet
+                            .slice(0, 4)
+                            .map((s: any) => (
+                              <div
+                                key={s.type}
+                                className="flex justify-between items-center text-[9px]"
+                              >
+                                <span className="text-zinc-500 truncate mr-1">
+                                  {s.type}
+                                </span>
+                                <span className="text-white font-mono font-bold">
+                                  {s.count}
+                                </span>
+                              </div>
+                            ))}
+                          {scanReport.shipsOnPlanet.length > 4 && (
+                            <div className="text-[8px] text-zinc-600 italic">
+                              +{scanReport.shipsOnPlanet.length - 4} more...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                )}
               </div>
-              {scanReport.buildings && scanReport.buildings.length > 0 && (
-                <div className="text-[10px] text-zinc-400 mt-2">
-                  <div className="font-bold text-zinc-300 mb-1 flex items-center gap-1"><Factory className="w-3 h-3"/> Buildings:</div>
-                  <ul className="list-disc list-inside">
-                    {scanReport.buildings.map((b: any) => (
-                      <li key={b.type}>{b.type} (Lv {b.level})</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {scanReport.shipsOnPlanet && scanReport.shipsOnPlanet.length > 0 && (
-                <div className="text-[10px] text-zinc-400 mt-2">
-                  <div className="font-bold text-red-400 mb-1 flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> Fleet Presence:</div>
-                  <ul className="list-disc list-inside">
-                    {scanReport.shipsOnPlanet.map((s: any) => (
-                      <li key={s.type}>{s.count}x {s.type}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+            )}
         </div>
       </div>
 
@@ -362,7 +477,7 @@ export function MapContextMenu({ object, scanTiming, onMiningStarted, onScannerS
           </>
         ) : (
           <>
-            <button 
+            <button
               onClick={handleQuickScan}
               disabled={scannersAvailable === 0 || isSelf}
               className="flex flex-col items-center justify-center bg-[#00E5FF]/5 border border-[#00E5FF]/30 rounded-lg p-2 transition-colors hover:bg-[#00E5FF]/20 group text-[#00E5FF] disabled:opacity-30 disabled:cursor-not-allowed relative"

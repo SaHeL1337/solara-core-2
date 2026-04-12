@@ -44,7 +44,7 @@
       "SHIPYARD": 4
     },
     "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 100,
+    "distancePerSecond": 8,
     "capacity": 1000
   },
   "BATTLESHIP": {
@@ -108,7 +108,7 @@
       "SHIPYARD": 2
     },
     "buildTimeInSeconds": "60 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 500,
+    "distancePerSecond": 0.2,
     "capacity": 0
   }
 }

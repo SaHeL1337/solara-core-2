@@ -15,6 +15,9 @@ import {
   Map as MapIcon,
   Info,
   AlertTriangle,
+  WifiHigh,
+  Factory,
+  ShieldAlert,
 } from "lucide-react";
 import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 
@@ -393,6 +396,80 @@ function MessageBody({ body }: { body: string }) {
               >
                 <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
               </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "SCAN_SUCCESS") {
+      const report = data.reportData;
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-start gap-4">
+            <p className="border-l-2 border-emerald-500 pl-3 py-1 bg-emerald-500/5 flex-1">
+              Sensor data from <span className="text-emerald-400 font-bold">{data.targetName}</span> successfully decrypted. Detailed planetary intelligence follows.
+            </p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bg-[#1a1d24] border border-[#2a2e38] p-4">
+              <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <WifiHigh className="w-3 h-3" /> Surface Resources
+              </div>
+              <div className="space-y-2">
+                {Object.entries(report.resources || {}).map(([res, amount]) => (
+                  <div key={res} className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2 uppercase tracking-wider font-bold text-[#e2e8f0]">
+                      <ResourceIcon type={res} />
+                      {res}
+                    </div>
+                    <span className="font-mono text-emerald-400 font-bold">
+                      {formatNumber(amount as number)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {report.buildings && report.buildings.length > 0 && (
+              <div className="bg-[#1a1d24] border border-[#2a2e38] p-4 text-zinc-300">
+                <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <Factory className="w-3 h-3" /> Structures
+                </div>
+                <div className="space-y-1.5">
+                  {report.buildings.map((b: any) => (
+                    <div key={b.type} className="flex justify-between items-center text-[10px]">
+                      <span className="text-zinc-400 uppercase font-bold">{b.type.replace(/_/g, " ")}</span>
+                      <span className="text-[#00E5FF] font-mono font-bold">LV {b.level}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {report.shipsOnPlanet && report.shipsOnPlanet.length > 0 && (
+              <div className="bg-[#1a1d24] border border-[#2a2e38] p-4 lg:col-span-1 md:col-span-2">
+                <div className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                  <ShieldAlert className="w-3 h-3" /> Garrisoned Fleet
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  {report.shipsOnPlanet.map((s: any) => (
+                    <div key={s.type} className="flex justify-between items-center text-[10px]">
+                      <span className="text-red-400 uppercase font-bold">{s.type}</span>
+                      <span className="text-white font-mono font-bold">x{s.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
