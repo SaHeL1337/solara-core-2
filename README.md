@@ -1,29 +1,37 @@
-# ☀️ Solara Core
+# Solara Core
 
-Solara Core is an experimental web application designed to test and refine build/deployment pipelines. It serves as the foundation for a future browser game, currently focusing on core infrastructure, containerization, and authentication.
+Solara Core is a massive multiplayer sci-fi strategy game and technical showcase. It is currently in active development as a solo passion project. The project focuses on building a robust, highly concurrent architecture capable of handling complex background processing and thousands of simultaneous players before expanding the universe.
 
----
+![Dashboard Overview](frontend/public/screenshots/dashboard.png)
 
-## 🚀 Tech Stack
+## Core Gameplay
 
-| Component          | Technology                                                                             |
-| :----------------- | :------------------------------------------------------------------------------------- |
-| **Frontend**       | [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)                            |
-| **Backend**        | [Node.js](https://nodejs.org/) + [Express](https://expressjs.com/)                     |
-| **Database**       | [PostgreSQL](https://www.postgresql.org/) (v15)                                        |
-| **Authentication** | [Clerk](https://clerk.com/)                                                            |
-| **Proxy / SSL**    | [Nginx](https://www.nginx.com/) + [Certbot](https://certbot.eff.org/)                  |
-| **Infrastructure** | [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/) |
+Players manage planetary empires, balance intricate resource generation, and coordinate vast fleets in real-time across a seamless galaxy map. Every decision matters, from the layout of industrial sectors to the composition of orbital fleets.
 
----
+<p align="center">
+  <img src="frontend/public/screenshots/buildings.png" width="49%" alt="Planet Management" />
+  <img src="frontend/public/screenshots/fleet_zoomed_in.png" width="49%" alt="Fleet Command" /> 
+</p>
 
-## 🛠️ Getting Started
+## Technical Stack
+
+Built to scale, Solara Core utilizes a modern TypeScript stack to ensure type safety from the database to the client.
+
+| Layer | Technology |
+| --- | --- |
+| **Frontend** | React, Vite, Tailwind CSS |
+| **Backend** | Node.js, Express, TypeScript |
+| **Database** | PostgreSQL (v15), Prisma ORM |
+| **Authentication** | Clerk |
+| **Proxy / SSL** | Nginx, Certbot |
+| **Infrastructure** | Docker, Docker Compose |
+
+## Getting Started
 
 ### Prerequisites
 
-- **Docker & Docker Compose** installed on your system.
-- A **Clerk** account for authentication keys.
-- (Optional) A domain pointed to your server (default: `solara-core.de`).
+- Docker and Docker Compose installed on your system.
+- A Clerk account for authentication keys.
 
 ### 1. Environment Configuration
 
@@ -40,33 +48,27 @@ For development with hot-reloading (syncing local changes to containers):
 
 ```bash
 docker-compose up --watch
-
-docker-compose exec backend npm run test:watch
 ```
 
-This command will:
-
-- Spin up the React frontend (Vite).
-- Spin up the Express backend.
-- Start the PostgreSQL database.
-- Configure Nginx as a reverse proxy.
-- Start Certbot for SSL management.
+This command automatically provisions:
+- The React frontend (Vite)
+- The Express backend API
+- The PostgreSQL database
+- Nginx reverse proxy and SSL management
 
 ### 3. Rebuilding
 
-If you change dependencies or Docker configurations, run:
+If you modify dependencies (`package.json`) or Docker configurations, a manual rebuild is required:
 
 ```bash
-docker compose build --no-cache
+docker-compose build --no-cache
 ```
 
----
-
-## 📁 Project Structure
+## Project Structure
 
 ```text
 .
-├── backend/            # Express API & Backend logic
+├── backend/            # Express API & background processing
 ├── frontend/           # React + Vite application
 ├── nginx/              # Proxy & SSL configuration
 ├── data/               # Persistent storage (DB & SSL)
@@ -74,21 +76,7 @@ docker compose build --no-cache
 └── docker-compose.yml  # Container orchestration
 ```
 
----
+## Development Notes
 
-## ⚠️ Important Caveats
-
-1. **Domain Dependency**: The `nginx.conf` is pre-configured for `solara-core.de`. If running on a different domain or localhost, update the `server_name` in `nginx/nginx.conf`.
-2. **Local Development SSL**: Nginx is configured to expect SSL certificates in `/etc/letsencrypt`. For pure local development without a domain, you might need to comment out the SSL block in `nginx/nginx.conf` or use tools like `mkcert` for local HTTPS.
-3. **Clerk Keys**: The application will not function without valid Clerk keys in the `.env` file. Ensure both `CLERK_SECRET_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` are present.
-4. **Syncing vs Rebuilding**:
-   - `up --watch` handles most frontend/backend source changes.
-   - Changes to `package.json` or `Dockerfile` require a manual rebuild.
-
----
-
-## 🔮 Future Goals
-
-- Transition into a fully functional browser game.
-- Implement production-optimized deployment stages alongside the current development stage.
-- Expand game mechanics and persistent world state.
+1. **Domain Configuration**: The `nginx.conf` file is currently pre-configured for `solara-core.de`. For pure local development or alternative domains, update the `server_name` directive in `nginx/nginx.conf` and disable the Let's Encrypt blocks if not needed.
+2. **Clerk Authentication**: The application will not function without valid Clerk keys in the `.env` file. Both frontend and backend rely on these keys to verify active sessions.
