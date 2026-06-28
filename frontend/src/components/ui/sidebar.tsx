@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Rocket, Map, LayoutGrid, Building2, Medal, Shield, Mail, Copy, Check, Globe } from "lucide-react";
+import { Rocket, Map, LayoutGrid, Building2, Medal, Shield, Mail, Copy, Check, Globe, Wrench, Tag } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { SignOutButton, useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,8 @@ export function Sidebar() {
     { icon: Medal, label: "Fleet", path: "/fleet" },
     { icon: Map, label: "Map", path: "/map" },
     { icon: Globe, label: "Planets", path: "/planets" },
+    { icon: Wrench, label: "Recipes", path: "/templates" },
+    { icon: Tag, label: "Tags", path: "/tags" },
     { icon: Mail, label: "Messages", path: "/messages" },
   ];
 

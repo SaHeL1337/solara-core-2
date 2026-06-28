@@ -20,6 +20,7 @@ model User {
   receivedMessages Message[] @relation("ReceivedMessages")
   scanReports     ScanReport[]
   tags            Tag[]
+  templates       PlanetTemplate[]
 }
 
 
@@ -228,6 +229,18 @@ model Tag {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   planets    Planet[] @relation("PlanetTags")
+  template   PlanetTemplate?
 
   @@unique([userId, name])
+}
+
+model PlanetTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  buildings Json     // string[]
+  ships     Json     // Record<string, number>
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId     String?  @unique
+  tag       Tag?     @relation(fields: [tagId], references: [id], onDelete: SetNull)
 }

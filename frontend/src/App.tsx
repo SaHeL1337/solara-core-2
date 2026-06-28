@@ -16,6 +16,8 @@ import Map from "@/pages/game/Map";
 import Messages from "@/pages/game/Messages";
 import AdminPanel from "@/pages/game/AdminPanel";
 import Planets from "@/pages/game/Planets";
+import Templates from "@/pages/game/Templates";
+import Tags from "@/pages/game/Tags";
 
 export default function App() {
   return (
@@ -44,6 +46,10 @@ export default function App() {
           <Route path="/map" element={<Map />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/planets" element={<Planets />} />
+          <Route path="/templates" element={<Templates />} />
+          <Route path="/templates/new" element={<Templates />} />
+          <Route path="/templates/edit/:id" element={<Templates />} />
+          <Route path="/tags" element={<Tags />} />
           <Route path="/admin" element={<AdminPanel />} />
           {/* If they try to go to /game, redirect to /dashboard */}
           <Route path="/game" element={<Navigate to="/dashboard" replace />} />

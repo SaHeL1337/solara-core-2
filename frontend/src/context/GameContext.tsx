@@ -14,6 +14,16 @@ export interface Tag {
   properties: Record<string, any>;
 }
 
+export interface PlanetTemplate {
+  id: string;
+  name: string;
+  buildings: string[];
+  ships: Record<string, number>;
+  tagId: string | null;
+  tag?: Tag | null;
+  isPredefined?: boolean;
+}
+
 // Define strict types for our resources and state
 export interface Planet {
   id: string;
@@ -46,6 +56,7 @@ export interface UserState {
   displayName: string | null;
   playerClass: string | null;
   tags: Tag[];
+  templates: PlanetTemplate[];
 }
 
 interface GameContextType {

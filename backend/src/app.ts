@@ -9,6 +9,7 @@ import messagesRoutes from "../src/modules/messages/messages.routes";
 import statisticsRoutes from "../src/modules/statistics/statistics.routes";
 import adminRoutes from "../src/modules/admin/admin.routes";
 import tagsRoutes from "../src/modules/tags/tags.routes";
+import templatesRoutes from "../src/modules/templates/templates.routes";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api/messages", messagesRoutes);
 app.use("/api/statistics", statisticsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tags", tagsRoutes);
+app.use("/api/templates", templatesRoutes);
 
 
 // Public route

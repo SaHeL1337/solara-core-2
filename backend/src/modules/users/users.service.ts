@@ -129,6 +129,9 @@ export const getUserState = async (userId: string) => {
         },
       },
       tags: true,
+      templates: {
+        include: { tag: true },
+      },
     },
   });
 
@@ -172,6 +175,7 @@ export const getUserState = async (userId: string) => {
     displayName: user.displayName,
     playerClass: user.playerClass,
     tags: user.tags || [],
+    templates: user.templates || [],
   };
 };
 
