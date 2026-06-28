@@ -8,6 +8,7 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
     const maxX = parseInt(req.query.maxX as string, 10);
     const minY = parseInt(req.query.minY as string, 10);
     const maxY = parseInt(req.query.maxY as string, 10);
+    const userId = (req as any).auth?.userId;
 
     if (isNaN(minX) || isNaN(maxX) || isNaN(minY) || isNaN(maxY)) {
       return res.status(400).json({ error: "Invalid coordinate bounds" });
@@ -18,6 +19,7 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
       maxX,
       minY,
       maxY,
+      userId,
     );
 
     // Map database enum types to frontend Map object types expected
@@ -35,6 +37,16 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
           break;
       }
 
+      let scanStatus = undefined;
+      if (mappedType === "planet") {
+        const scanReport = obj.planet?.scanReports?.[0];
+        if (scanReport) {
+          scanStatus = scanReport.data && (scanReport.data as any).failed ? "failed" : "success";
+        } else {
+          scanStatus = "unscanned";
+        }
+      }
+
       return {
         id: obj.id,
         type: mappedType,
@@ -46,6 +58,7 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
         titanium: obj.titanium,
         silicate: obj.silicate,
         isotope: obj.isotope,
+        scanStatus,
       };
     });
 

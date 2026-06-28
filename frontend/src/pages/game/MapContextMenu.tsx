@@ -28,6 +28,7 @@ export type SpaceObject = {
   titanium?: number;
   silicate?: number;
   isotope?: number;
+  scanStatus?: "success" | "failed" | "unscanned";
 };
 
 interface MapContextMenuProps {
@@ -343,94 +344,113 @@ export function MapContextMenu({
                   </span>
                 </div>
 
-                <div className="flex gap-1 bg-zinc-900/50 p-2 border border-zinc-800/50">
-                  {[
-                    {
-                      label: "titanium",
-                      icon: TitaniumIcon,
-                      val: scanReport.resources?.titanium || 0,
-                    },
-                    {
-                      label: "silicate",
-                      icon: SilicateIcon,
-                      val: scanReport.resources?.silicate || 0,
-                    },
-                    {
-                      label: "isotope",
-                      icon: IsotopeIcon,
-                      val: scanReport.resources?.isotope || 0,
-                    },
-                  ].map((res) => (
-                    <div
-                      key={res.label}
-                      className="flex-1 flex flex-col items-center"
-                    >
-                      <div className="flex items-center gap-1 mb-1">
-                        <res.icon className="size-3" />
-                      </div>
-                      <span className="text-[10px] font-mono font-bold text-[#e2e8f0]">
-                        {formatNumber(res.val)}
-                      </span>
+                {scanReport.failed ? (
+                  <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-3 text-red-400 space-y-1">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-red-400">
+                      <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" />
+                      Scan Intercepted
                     </div>
-                  ))}
-                </div>
-
-                {(scanReport.buildings?.length > 0 ||
-                  scanReport.shipsOnPlanet?.length > 0) && (
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {scanReport.buildings?.length > 0 && (
-                      <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
-                        <div className="text-[8px] font-bold text-[#64748b] uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                          <Factory className="w-2.5 h-2.5" /> Structures
-                        </div>
-                        <div className="space-y-1">
-                          {scanReport.buildings.map((b: any) => (
-                            <div
-                              key={b.type}
-                              className="flex justify-between items-center text-[9px]"
-                            >
-                              <span className="text-zinc-500 truncate mr-1">
-                                {b.type.split("_")[0]}
-                              </span>
-                              <span className="text-[#00E5FF] font-mono font-bold">
-                                {b.level}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {scanReport.shipsOnPlanet?.length > 0 && (
-                      <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
-                        <div className="text-[8px] font-bold text-red-900/80 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                          <ShieldAlert className="w-2.5 h-2.5" /> Garrison
-                        </div>
-                        <div className="space-y-1">
-                          {scanReport.shipsOnPlanet
-                            .slice(0, 4)
-                            .map((s: any) => (
-                              <div
-                                key={s.type}
-                                className="flex justify-between items-center text-[9px]"
-                              >
-                                <span className="text-zinc-500 truncate mr-1">
-                                  {s.type}
-                                </span>
-                                <span className="text-white font-mono font-bold">
-                                  {s.count}
-                                </span>
-                              </div>
-                            ))}
-                          {scanReport.shipsOnPlanet.length > 4 && (
-                            <div className="text-[8px] text-zinc-600 italic">
-                              +{scanReport.shipsOnPlanet.length - 4} more...
-                            </div>
-                          )}
-                        </div>
+                    <p className="text-[10px] text-zinc-400 leading-relaxed">
+                      Our scanner probes were detected and destroyed by the planetary defense force.
+                    </p>
+                    {scanReport.losses > 0 && (
+                      <div className="text-[9px] text-red-500 font-mono mt-1">
+                        Losses: {scanReport.losses} SCANNER{scanReport.losses > 1 ? "s" : ""}
                       </div>
                     )}
                   </div>
+                ) : (
+                  <>
+                    <div className="flex gap-1 bg-zinc-900/50 p-2 border border-zinc-800/50">
+                      {[
+                        {
+                          label: "titanium",
+                          icon: TitaniumIcon,
+                          val: scanReport.resources?.titanium || 0,
+                        },
+                        {
+                          label: "silicate",
+                          icon: SilicateIcon,
+                          val: scanReport.resources?.silicate || 0,
+                        },
+                        {
+                          label: "isotope",
+                          icon: IsotopeIcon,
+                          val: scanReport.resources?.isotope || 0,
+                        },
+                      ].map((res) => (
+                        <div
+                          key={res.label}
+                          className="flex-1 flex flex-col items-center"
+                        >
+                          <div className="flex items-center gap-1 mb-1">
+                            <res.icon className="size-3" />
+                          </div>
+                          <span className="text-[10px] font-mono font-bold text-[#e2e8f0]">
+                            {formatNumber(res.val)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {(scanReport.buildings?.length > 0 ||
+                      scanReport.shipsOnPlanet?.length > 0) && (
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        {scanReport.buildings?.length > 0 && (
+                          <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
+                            <div className="text-[8px] font-bold text-[#64748b] uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                              <Factory className="w-2.5 h-2.5" /> Structures
+                            </div>
+                            <div className="space-y-1">
+                              {scanReport.buildings.map((b: any) => (
+                                <div
+                                  key={b.type}
+                                  className="flex justify-between items-center text-[9px]"
+                                >
+                                  <span className="text-zinc-500 truncate mr-1">
+                                    {b.type.split("_")[0]}
+                                  </span>
+                                  <span className="text-[#00E5FF] font-mono font-bold">
+                                    {b.level}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {scanReport.shipsOnPlanet?.length > 0 && (
+                          <div className="bg-zinc-900/50 p-2 border border-zinc-800/50">
+                            <div className="text-[8px] font-bold text-red-900/80 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                              <ShieldAlert className="w-2.5 h-2.5" /> Garrison
+                            </div>
+                            <div className="space-y-1">
+                              {scanReport.shipsOnPlanet
+                                .slice(0, 4)
+                                .map((s: any) => (
+                                  <div
+                                    key={s.type}
+                                    className="flex justify-between items-center text-[9px]"
+                                  >
+                                    <span className="text-zinc-500 truncate mr-1">
+                                      {s.type}
+                                    </span>
+                                    <span className="text-white font-mono font-bold">
+                                      {s.count}
+                                    </span>
+                                  </div>
+                                ))}
+                              {scanReport.shipsOnPlanet.length > 4 && (
+                                <div className="text-[8px] text-zinc-600 italic">
+                                  +{scanReport.shipsOnPlanet.length - 4} more...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

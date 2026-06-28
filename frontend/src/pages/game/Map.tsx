@@ -40,17 +40,14 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
 
   if (obj.imageUrl) {
     let customStyle: any = {};
-    let customClassName = "flex items-center justify-center drop-shadow-xl";
-    if (isMined) {
-      customClassName += " relative";
-    }
+    let customClassName = "flex items-center justify-center drop-shadow-xl relative";
 
     if (obj.type === "planet") {
       if (isUserPlanet) {
         customStyle = {
           filter: `drop-shadow(0 0 10px rgba(0,229,255,1)) drop-shadow(0 0 20px rgba(0,229,255,0.6)) brightness(1.2)`,
         };
-        customClassName = "flex items-center justify-center animate-pulse z-[1000]";
+        customClassName = "flex items-center justify-center animate-pulse z-[1000] relative";
       } else {
         const coordHash = Math.abs(Math.sin(obj.x * 34.5 + obj.y * 89.2)) * 10000;
         const hueRotate = Math.floor(coordHash % 360);
@@ -73,8 +70,21 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
         />
         {isMined && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00E5FF]/80 rounded-full animate-ping opacity-75"></div>}
         {isMined && <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#00E5FF] rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_8px_#00E5FF]"></div>}
+        
+        {/* Scan Status Indicators */}
         {isScanned && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-emerald-500 animate-[ping_2s_linear_infinite] pointer-events-none"></div>}
-        {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg">Scanning</div>}
+        {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg z-[1001]">Scanning</div>}
+        
+        {!isScanned && obj.scanStatus === "success" && (
+          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_6px_#10B981] flex items-center justify-center text-[8px] text-zinc-950 font-extrabold select-none z-[1001]">
+            ✓
+          </div>
+        )}
+        {!isScanned && obj.scanStatus === "failed" && (
+          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_6px_#F43F5E] flex items-center justify-center text-[8px] text-white font-extrabold select-none z-[1001]">
+            ×
+          </div>
+        )}
       </div>,
     );
   }
@@ -94,8 +104,21 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
       />
       {isMined && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E5FF] rounded-full animate-ping opacity-75"></div>}
       {isMined && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#00E5FF] rounded-full border border-zinc-950 shadow-[0_0_5px_#00E5FF]"></div>}
+      
+      {/* Scan Status Indicators */}
       {isScanned && <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full border border-emerald-500 animate-[ping_2s_linear_infinite] pointer-events-none"></div>}
-      {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg">Scanning</div>}
+      {isScanned && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 text-emerald-400 text-[8px] px-1 py-0.5 rounded shadow-lg z-[1001]">Scanning</div>}
+      
+      {!isScanned && obj.scanStatus === "success" && (
+        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_6px_#10B981] flex items-center justify-center text-[8px] text-zinc-950 font-extrabold select-none z-[1001]">
+          ✓
+        </div>
+      )}
+      {!isScanned && obj.scanStatus === "failed" && (
+        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full border-[1.5px] border-zinc-950 shadow-[0_0_6px_#F43F5E] flex items-center justify-center text-[8px] text-white font-extrabold select-none z-[1001]">
+          ×
+        </div>
+      )}
     </div>,
   );
 }
@@ -166,10 +189,12 @@ function MapDataFetcher({
   setZoom,
   setMapObjects,
   setLoadingMap,
+  refreshTrigger,
 }: {
   setZoom: (z: number) => void;
   setMapObjects: (objs: SpaceObject[]) => void;
   setLoadingMap: (l: boolean) => void;
+  refreshTrigger: number;
 }) {
   const map = useMapEvents({
     moveend: async () => {
@@ -235,10 +260,10 @@ function MapDataFetcher({
     zoomend: () => setZoom(map.getZoom()),
   });
 
-  // Run once on mount to get initial view
+  // Run once on mount and on refreshTrigger update to get initial view / update view
   useEffect(() => {
     map.fire("moveend");
-  }, [map]);
+  }, [map, refreshTrigger]);
 
   return null;
 }
@@ -269,6 +294,7 @@ export default function Map() {
   const [activeMiningTargets, setActiveMiningTargets] = useState<Set<string>>(new Set());
   const [activeScanTargets, setActiveScanTargets] = useState<Set<string>>(new Set());
   const [scanTimings, setScanTimings] = useState<Record<string, { start: number; end: number }>>({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Fetch miners
   useEffect(() => {
@@ -306,9 +332,28 @@ export default function Map() {
             }
           }
         });
+
+        let changed = false;
+        setActiveScanTargets((prev) => {
+          if (prev.size !== scanIds.size) {
+            changed = true;
+          } else {
+            for (const id of scanIds) {
+              if (!prev.has(id)) {
+                changed = true;
+                break;
+              }
+            }
+          }
+          return scanIds;
+        });
+
         setActiveMiningTargets(miningIds);
-        setActiveScanTargets(scanIds);
         setScanTimings(timings);
+
+        if (changed) {
+          setRefreshTrigger((prev) => prev + 1);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -375,6 +420,7 @@ export default function Map() {
           setZoom={setZoom}
           setMapObjects={setMapObjects}
           setLoadingMap={setLoadingMap}
+          refreshTrigger={refreshTrigger}
         />
         <SpaceGridLayer />
         <MapInfoPanel minersAvailable={minersAvailable} />

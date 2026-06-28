@@ -5,6 +5,7 @@ export const getObjectsInBounds = async (
   maxX: number,
   minY: number,
   maxY: number,
+  userId?: string,
 ) => {
   const spaceObjects = await prisma.spaceObject.findMany({
     where: {
@@ -15,6 +16,11 @@ export const getObjectsInBounds = async (
       planet: {
         include: {
           owner: true,
+          scanReports: {
+            where: {
+              userId: userId || "",
+            },
+          },
         },
       },
     },

@@ -442,6 +442,25 @@ export class JobService {
             if (attackerScannersCount < defenderScannersCount) {
               // Attacker loses all scanners, sees nothing
               losses = attackerScannersCount;
+              
+              // Upsert the scan report with failed = true
+              await tx.scanReport.upsert({
+                where: {
+                  userId_planetId: {
+                    userId: fleet.userId,
+                    planetId: target.planet.id
+                  }
+                },
+                update: {
+                  data: { failed: true, losses },
+                  createdAt: new Date()
+                },
+                create: {
+                  userId: fleet.userId,
+                  planetId: target.planet.id,
+                  data: { failed: true, losses }
+                }
+              });
             } else {
               // Attacker wins/draws. Losses formula
               const damage = defenderScannersCount * 2 - attackerScannersCount;
