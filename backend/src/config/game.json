@@ -31,7 +31,7 @@
     "sovereigntyAfterConquest": 50,
     "colonyShipConsumed": true
   },
-  "playerClasses": ["WARLORD", "TRADER", "ENGINEER"],
+  "playerClasses": ["Commander", "Bastion", "Harvester"],
   "asteroidsPerPlayer": 3,
   "blackHolesPerPlayer": 1,
   "npcPlanetsPerPlayer": 5

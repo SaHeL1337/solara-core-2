@@ -1,41 +1,41 @@
 import { useState } from "react";
-import { Rocket, Swords, TrendingUp, Wrench, ChevronRight, Sparkles } from "lucide-react";
+import { Rocket, Swords, ChevronRight, Sparkles, Coins, Shield } from "lucide-react";
 import api from "@/lib/api";
 import { useGame } from "@/context/GameContext";
 
 const CLASSES = [
   {
-    id: "WARLORD",
-    name: "Warlord",
+    id: "Commander",
+    name: "Commander",
     icon: Swords,
     color: "#ef4444",
     gradient: "from-red-500/20 to-red-900/10",
     borderColor: "border-red-500",
     glowColor: "shadow-[0_0_30px_rgba(239,68,68,0.3)]",
-    description: "Born for conquest. Warlords excel in military campaigns and planetary sieges.",
-    traits: ["Stronger fleets", "Faster conquest", "Combat bonuses"],
+    description: "Born for conquest. Commanders are aggressive expansionists who build massive amounts of ships.",
+    traits: ["Aggressive", "Tactical", "High intensity"],
   },
   {
-    id: "TRADER",
-    name: "Trader",
-    icon: TrendingUp,
+    id: "Bastion",
+    name: "Bastion",
+    icon: Shield,
     color: "#f59e0b",
     gradient: "from-amber-500/20 to-amber-900/10",
     borderColor: "border-amber-500",
     glowColor: "shadow-[0_0_30px_rgba(245,158,11,0.3)]",
-    description: "Masters of commerce. Traders generate wealth and influence through resource networks.",
-    traits: ["Resource bonuses", "Trade routes", "Economic growth"],
+    description: "Building powerful defensive ships to protect and expand your empire.",
+    traits: ["Defensive", "Beginner friendly", "Low intensity"],
   },
   {
-    id: "ENGINEER",
-    name: "Engineer",
-    icon: Wrench,
+    id: "Harvester",
+    name: "Harvester",
+    icon: Coins,
     color: "#00E5FF",
     gradient: "from-cyan-500/20 to-cyan-900/10",
     borderColor: "border-cyan-500",
     glowColor: "shadow-[0_0_30px_rgba(0,229,255,0.3)]",
-    description: "Architects of empires. Engineers build faster and unlock advanced technologies.",
-    traits: ["Faster building", "Tech advantage", "Ship upgrades"],
+    description: "Harvesters are traders and production specialists. Most production.",
+    traits: ["More production", "Beginner friendly", "Trader"],
   },
 ];
 
@@ -110,7 +110,7 @@ export default function PlayerSetup() {
             </div>
             <ChevronRight className="w-3 h-3 text-[#2a2e38]" />
             <div className={`flex items-center gap-2 px-3 py-1.5 border transition-all ${step === 2 ? 'border-[#00E5FF] text-[#00E5FF] bg-[#00E5FF]/5' : 'border-[#2a2e38] text-[#64748b]'}`}>
-              <span className="text-[10px] font-bold tracking-widest uppercase">2. Doctrine</span>
+              <span className="text-[10px] font-bold tracking-widest uppercase">2. Class</span>
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function PlayerSetup() {
           <div className="space-y-6 animate-in fade-in">
             <div className="bg-[#111317] border border-[#1e2028] p-8">
               <label className="block text-[10px] font-bold tracking-[0.2em] uppercase text-[#00E5FF] mb-4">
-                Commander Name
+                Name
               </label>
               <input
                 type="text"
@@ -144,11 +144,10 @@ export default function PlayerSetup() {
             <button
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className={`w-full py-4 text-sm font-bold tracking-widest uppercase transition-all ${
-                canProceedStep1
-                  ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]'
-                  : 'bg-[#1a1d24] text-[#64748b] border border-[#2a2e38] cursor-not-allowed'
-              }`}
+              className={`w-full py-4 text-sm font-bold tracking-widest uppercase transition-all ${canProceedStep1
+                ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]'
+                : 'bg-[#1a1d24] text-[#64748b] border border-[#2a2e38] cursor-not-allowed'
+                }`}
             >
               Continue <ChevronRight className="w-4 h-4 inline ml-1" />
             </button>
@@ -167,11 +166,10 @@ export default function PlayerSetup() {
                   <button
                     key={cls.id}
                     onClick={() => setSelectedClass(cls.id)}
-                    className={`relative text-left p-6 border-2 transition-all duration-300 bg-gradient-to-r ${cls.gradient} ${
-                      isSelected
-                        ? `${cls.borderColor} ${cls.glowColor}`
-                        : 'border-[#1e2028] hover:border-[#3b4252]'
-                    }`}
+                    className={`relative text-left p-6 border-2 transition-all duration-300 bg-gradient-to-r ${cls.gradient} ${isSelected
+                      ? `${cls.borderColor} ${cls.glowColor}`
+                      : 'border-[#1e2028] hover:border-[#3b4252]'
+                      }`}
                   >
                     {isSelected && (
                       <div className="absolute top-3 right-3">
@@ -239,11 +237,10 @@ export default function PlayerSetup() {
               <button
                 onClick={handleSubmit}
                 disabled={!canLaunch || isSubmitting}
-                className={`flex-1 py-4 text-sm font-bold tracking-widest uppercase transition-all ${
-                  canLaunch && !isSubmitting
-                    ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]'
-                    : 'bg-[#1a1d24] text-[#64748b] border border-[#2a2e38] cursor-not-allowed'
-                }`}
+                className={`flex-1 py-4 text-sm font-bold tracking-widest uppercase transition-all ${canLaunch && !isSubmitting
+                  ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_20px_rgba(0,229,255,0.4)]'
+                  : 'bg-[#1a1d24] text-[#64748b] border border-[#2a2e38] cursor-not-allowed'
+                  }`}
               >
                 <Rocket className={`w-4 h-4 inline mr-2 ${isSubmitting ? 'animate-pulse' : ''}`} />
                 {isSubmitting ? 'Initializing...' : 'Launch Command Center'}
