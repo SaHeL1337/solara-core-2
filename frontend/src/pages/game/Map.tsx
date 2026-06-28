@@ -1,10 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import {
   MapContainer,
   useMap,
   useMapEvents,
   Marker,
-  Popup,
 } from "react-leaflet";
 import { renderToString } from "react-dom/server";
 import { Globe, Hexagon, Sparkles } from "lucide-react";
@@ -12,7 +11,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useGame } from "@/context/GameContext";
 
-import { MapContextMenu, SpaceObject } from "./MapContextMenu";
+import { MapDetailPanel, SpaceObject } from "./MapContextMenu";
 
 // The base icon multiplier (how many pixels a size 1 object takes up)
 const BASE_ICON_SIZE = 1;
@@ -27,11 +26,8 @@ const PLANET_COLORS = [
   "text-emerald-400",
 ];
 
-// Removed DUMMY_OBJECTS logic
-
-function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolean = false, isScanned: boolean = false) {
+function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolean = false, isScanned: boolean = false, isSelected: boolean = false) {
   // Scale factor: base 2 exponent of zoom.
-  // e.g. zoom 0 = 1x, zoom -1 = 0.5x, zoom 1 = 2x
   const scale = Math.max(0.1, Math.abs(Math.pow(2, currentZoom)));
   
   const isUserPlanet = obj.type === "planet" && obj.name !== "Uncharted Planet";
@@ -57,11 +53,29 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
       }
     }
 
+    // Override with selection glow
+    if (isSelected) {
+      customStyle = {
+        ...customStyle,
+        filter: `${customStyle.filter || ""} drop-shadow(0 0 12px rgba(0,229,255,0.9)) brightness(1.3)`.trim(),
+      };
+    }
+
     return renderToString(
       <div
         className={customClassName}
         style={{ width: `${scaledSize}px`, height: `${scaledSize}px` }}
       >
+        {isSelected && (
+          <div style={{
+            position: "absolute",
+            inset: "-8px",
+            border: "2px solid rgba(0,229,255,0.6)",
+            borderRadius: "50%",
+            boxShadow: "0 0 20px rgba(0,229,255,0.4), 0 0 40px rgba(0,229,255,0.15), inset 0 0 15px rgba(0,229,255,0.1)",
+            animation: "pulse 2s ease-in-out infinite",
+          }} />
+        )}
         <img
           src={obj.imageUrl}
           alt={obj.name}
@@ -98,6 +112,16 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
       className={`flex items-center justify-center relative ${obj.color} drop-shadow-xl`}
       style={{ width: `${scaledSize}px`, height: `${scaledSize}px` }}
     >
+      {isSelected && (
+        <div style={{
+          position: "absolute",
+          inset: "-8px",
+          border: "2px solid rgba(0,229,255,0.6)",
+          borderRadius: "50%",
+          boxShadow: "0 0 20px rgba(0,229,255,0.4), 0 0 40px rgba(0,229,255,0.15)",
+          animation: "pulse 2s ease-in-out infinite",
+        }} />
+      )}
       <IconComponent
         strokeWidth={1.5}
         style={{ width: "100%", height: "100%" }}
@@ -166,7 +190,6 @@ function SpaceGridLayer() {
         const tile = document.createElement("div");
         tile.style.outline = "1px solid rgba(255, 255, 255, 0.05)";
         tile.style.backgroundColor = "transparent";
-        // removed text content to keep it clean as requested
         return tile;
       },
     });
@@ -180,8 +203,6 @@ function SpaceGridLayer() {
   }, [map]);
   return null;
 }
-
-// Removed redundant MapEventsHandler
 
 import api from "@/lib/api";
 
@@ -216,7 +237,7 @@ function MapDataFetcher({
           let imageUrl;
           if (obj.type === "planet") {
             if (obj.name !== "Uncharted Planet") {
-              imageUrl = "/assets/map/planet_1.svg"; // Complex visual for inhabited planets
+              imageUrl = "/assets/map/planet_1.svg";
             } else {
               const variants = [
                 "/assets/map/planet_1.svg",
@@ -224,7 +245,6 @@ function MapDataFetcher({
                 "/assets/map/planet_3.svg",
                 "/assets/map/planet_4.svg",
               ];
-              // Hash based on coordinates for consistent variety
               const coordHash = Math.abs(Math.sin(obj.x * 12.9898 + obj.y * 78.233)) * 43758.5453;
               imageUrl = variants[Math.floor(coordHash) % variants.length];
             }
@@ -234,7 +254,6 @@ function MapDataFetcher({
             imageUrl = "/assets/map/black_hole.svg";
           }
 
-          // Compute color from coordinates for fallback UI
           const colorHash = Math.abs(Math.sin(obj.x * 4.23 + obj.y * 11.1)) * 10000;
           const planetColorIndex = Math.floor(colorHash) % PLANET_COLORS.length;
 
@@ -276,6 +295,33 @@ function MapCenterer({ center }: { center: [number, number] }) {
   return null;
 }
 
+/**
+ * Smoothly pans/flies the map to a target when it changes.
+ */
+function MapFlyer({ target, panelOpen }: { target: [number, number] | null; panelOpen: boolean }) {
+  const map = useMap();
+  const lastTarget = useRef<[number, number] | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    lastTarget.current = target;
+
+    const mapSize = map.getSize();
+    const targetPoint = map.latLngToContainerPoint(L.latLng(target[0], target[1]));
+    
+    // Shift target to the left (center of the remaining 70% of screen)
+    // Adding to targetPoint.x shifts the focused center coordinates to the right,
+    // which visually positions the selected object to the left at 35% screen width.
+    const offsetPixels = panelOpen ? mapSize.x * 0.15 : 0;
+    const offsetPoint = L.point(targetPoint.x + offsetPixels, targetPoint.y);
+    const offsetLatLng = map.containerPointToLatLng(offsetPoint);
+
+    map.flyTo(offsetLatLng, map.getZoom(), { duration: 0.5, easeLinearity: 0.5 });
+  }, [target, panelOpen, map]);
+
+  return null;
+}
+
 export default function Map() {
   const [zoom, setZoom] = useState(0);
   const [mapObjects, setMapObjects] = useState<SpaceObject[]>([]);
@@ -293,8 +339,11 @@ export default function Map() {
   const [minersAvailable, setMinersAvailable] = useState<number | null>(null);
   const [activeMiningTargets, setActiveMiningTargets] = useState<Set<string>>(new Set());
   const [activeScanTargets, setActiveScanTargets] = useState<Set<string>>(new Set());
-  const [scanTimings, setScanTimings] = useState<Record<string, { start: number; end: number }>>({});
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Selected object for side panel
+  const [selectedObject, setSelectedObject] = useState<SpaceObject | null>(null);
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
 
   // Fetch miners
   useEffect(() => {
@@ -314,7 +363,6 @@ export default function Map() {
         const { data } = await api.get("/fleet/movements");
         const miningIds = new Set<string>();
         const scanIds = new Set<string>();
-        const timings: Record<string, { start: number; end: number }> = {};
 
         const movements = Array.isArray(data.data) ? data.data : (data.data.active || []);
         movements.forEach((m: any) => {
@@ -323,13 +371,6 @@ export default function Map() {
           }
           if (m.missionType === "SCAN" && m.status === "EN_ROUTE" && m.targetId) {
             scanIds.add(m.targetId);
-            const startT = new Date(m.startTime).getTime();
-            const arrivalT = new Date(m.arrivalTime).getTime();
-            
-            // If multiple scans are heading to the same target, track the one that arrives last
-            if (!timings[m.targetId] || arrivalT > timings[m.targetId].end) {
-              timings[m.targetId] = { start: startT, end: arrivalT };
-            }
           }
         });
 
@@ -349,7 +390,6 @@ export default function Map() {
         });
 
         setActiveMiningTargets(miningIds);
-        setScanTimings(timings);
 
         if (changed) {
           setRefreshTrigger((prev) => prev + 1);
@@ -368,20 +408,19 @@ export default function Map() {
     setMinersAvailable((prev) => (prev !== null ? prev - usedMiners : null));
   };
 
-  const handleScannerStarted = (targetId: string, _: number, arrivalTimeStr?: string) => {
+  const handleScannerStarted = (targetId: string) => {
     setActiveScanTargets((prev) => new Set(prev).add(targetId));
-    if (arrivalTimeStr) {
-      const start = Date.now();
-      const end = new Date(arrivalTimeStr).getTime();
-      setScanTimings(prev => {
-        const existing = prev[targetId];
-        if (!existing || end > existing.end) {
-          return { ...prev, [targetId]: { start, end } };
-        }
-        return prev;
-      });
-    }
   };
+
+  const handleObjectClick = useCallback((obj: SpaceObject) => {
+    setSelectedObject(obj);
+    setFlyTarget([obj.y, obj.x]);
+  }, []);
+
+  const handleClosePanel = useCallback(() => {
+    setSelectedObject(null);
+    setFlyTarget(null);
+  }, []);
 
   // Custom icons memoized
   const icons = useMemo(() => {
@@ -392,68 +431,79 @@ export default function Map() {
       const scaledSize = obj.size * BASE_ICON_SIZE * scale;
       const isMined = activeMiningTargets.has(obj.id);
       const isScanned = activeScanTargets.has(obj.id);
+      const isSelected = selectedObject?.id === obj.id;
       iconMap[obj.id] = L.divIcon({
-        html: createIconMarkup(obj, zoom, isMined, isScanned),
+        html: createIconMarkup(obj, zoom, isMined, isScanned, isSelected),
         className: "bg-transparent border-none",
         iconSize: [scaledSize, scaledSize],
-        iconAnchor: [scaledSize / 2, scaledSize / 2], // Center the icon
+        iconAnchor: [scaledSize / 2, scaledSize / 2],
       });
     });
     return iconMap;
-  }, [zoom, mapObjects, activeMiningTargets, activeScanTargets]);
+  }, [zoom, mapObjects, activeMiningTargets, activeScanTargets, selectedObject?.id]);
+
+  const panelOpen = selectedObject !== null;
 
   return (
-    <div className="flex-1 w-full relative bg-zinc-950 h-[calc(100vh-64px)] overflow-hidden">
-      <MapContainer
-        crs={L.CRS.Simple}
-        center={initialCenter}
-        zoom={5}
-        minZoom={4}
-        maxZoom={5}
-        // @ts-ignore Let Leaflet options pass through
-        zoomControl={false} // Disable default zoom control UI to remove the bright white +/- artifact
-        className="h-full w-full outline-none z-0"
-        style={{ background: "#09090b", cursor: "grab" }}
+    <div className="flex-1 w-full relative bg-zinc-950 h-[calc(100vh-80px)] overflow-hidden">
+      {/* Map area — always full width */}
+      <div className="w-full h-full relative">
+        <MapContainer
+          crs={L.CRS.Simple}
+          center={initialCenter}
+          zoom={5}
+          minZoom={4}
+          maxZoom={5}
+          // @ts-ignore Let Leaflet options pass through
+          zoomControl={false}
+          className="h-full w-full outline-none z-0"
+          style={{ background: "#09090b", cursor: "grab" }}
+        >
+          <MapCenterer center={initialCenter} />
+          <MapFlyer target={flyTarget} panelOpen={panelOpen} />
+          <MapDataFetcher
+            setZoom={setZoom}
+            setMapObjects={setMapObjects}
+            setLoadingMap={setLoadingMap}
+            refreshTrigger={refreshTrigger}
+          />
+          <SpaceGridLayer />
+          <MapInfoPanel minersAvailable={minersAvailable} />
+          {loadingMap && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 bg-zinc-950/80 text-zinc-300 px-4 py-2 rounded-full text-sm border border-zinc-800 pointer-events-none">
+              Scanning Sector...
+            </div>
+          )}
+
+          {mapObjects.map((obj) => (
+            <Marker
+              key={obj.id}
+              position={[obj.y, obj.x]}
+              icon={icons[obj.id]}
+              eventHandlers={{
+                click: () => handleObjectClick(obj),
+              }}
+            />
+          ))}
+        </MapContainer>
+      </div>
+
+      {/* Side Panel — absolute overlay from right */}
+      <div
+        className={`absolute top-0 right-0 h-full transition-all duration-300 ease-out overflow-hidden z-[1000] shadow-2xl bg-[#111317] ${
+          panelOpen ? "w-[30%] min-w-[320px] border-l border-[#1e2028]" : "w-0 border-l-0"
+        }`}
       >
-        <MapCenterer center={initialCenter} />
-        <MapDataFetcher
-          setZoom={setZoom}
-          setMapObjects={setMapObjects}
-          setLoadingMap={setLoadingMap}
-          refreshTrigger={refreshTrigger}
-        />
-        <SpaceGridLayer />
-        <MapInfoPanel minersAvailable={minersAvailable} />
-        {loadingMap && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-1000 bg-zinc-950/80 text-zinc-300 px-4 py-2 rounded-full text-sm border border-zinc-800 pointer-events-none">
-            Scanning Sector...
-          </div>
+        {selectedObject && (
+          <MapDetailPanel
+            key={selectedObject.id}
+            object={selectedObject}
+            onMiningStarted={handleMiningStarted}
+            onScannerStarted={handleScannerStarted}
+            onClose={handleClosePanel}
+          />
         )}
-
-        {mapObjects.map((obj) => (
-          <Marker key={obj.id} position={[obj.y, obj.x]} icon={icons[obj.id]}>
-            <Popup
-              className="custom-map-popup"
-              closeButton={false}
-              autoPanPadding={[50, 50]}
-            >
-              <div className="bg-zinc-950/95 border border-zinc-800 rounded-xl shadow-2xl p-4 text-white w-64 backdrop-blur-md">
-                <MapContextMenu
-                  object={obj}
-                  scanTiming={scanTimings[obj.id]}
-                  onMiningStarted={handleMiningStarted}
-                  onScannerStarted={handleScannerStarted}
-                  onClose={() => {
-                    // Handled inside via useMap().closePopup()
-                  }}
-                />
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-      </MapContainer>
-
-      {/* No manual floating context overlay rendering required since we use Popup */}
+      </div>
     </div>
   );
 }

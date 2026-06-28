@@ -19,14 +19,14 @@ import AdminPanel from "@/pages/game/AdminPanel";
 export default function App() {
   return (
     <BrowserRouter>
-      <Toaster position="bottom-right" richColors theme="dark" />
+      <Toaster position="bottom-center" richColors theme="dark" />
       <Routes>
         {/* --- PUBLIC SECTION --- */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<LandingPage />} />
           {/* Add more public pages like /about or /features here */}
         </Route>
- 
+
         {/* --- PRIVATE GAME SECTION --- */}
         {/* We wrap this in Clerk's SignedIn check */}
         <Route

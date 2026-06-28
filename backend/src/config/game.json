@@ -9,9 +9,12 @@
     "silicate": 500,
     "isotope": 500,
     "buildings": {
-      "HOUSING_BLOCK": 1,
+      "TITANIUM_MINE": 15,
+      "SILICATE_MINE": 15,
+      "ISOTOPE_COLLECTOR": 15,
+      "HOUSING_BLOCK": 5,
       "GOVERNMENT_BUILDING": 1,
-      "STORAGE": 1
+      "STORAGE": 3
     },
     "ships": {
       "MINER": 500,
