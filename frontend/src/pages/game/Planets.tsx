@@ -21,6 +21,18 @@ import {
 } from "lucide-react";
 import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 
+const BUILDING_NAMES: Record<string, string> = {
+  TITANIUM_MINE: "Titanium Mine",
+  SILICATE_MINE: "Silicate Mine",
+  ISOTOPE_COLLECTOR: "Isotope Collector",
+  SHIPYARD: "Shipyard",
+  SHIELD_GENERATOR: "Shield Generator",
+  HOUSING_BLOCK: "Housing Block",
+  GOVERNMENT_BUILDING: "Government Building",
+  STORAGE: "Storage",
+  TRADING_HUB: "Trading Hub",
+};
+
 type SortField = "name" | "x" | "sovereignty" | "titanium";
 type SortDir = "asc" | "desc";
 
@@ -301,19 +313,19 @@ export default function Planets() {
                   <div className="grid grid-cols-3 gap-2">
                     <div className="flex items-center gap-1">
                       <TitaniumIcon className="w-3 h-3 text-[#00E5FF]" />
-                      <span className="text-[10px] font-mono text-[#94a3b8]">
+                      <span className={`text-[10px] font-mono ${Math.floor(planet.titanium) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                         {formatNumber(Math.floor(planet.titanium))}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <SilicateIcon className="w-3 h-3 text-emerald-400" />
-                      <span className="text-[10px] font-mono text-[#94a3b8]">
+                      <span className={`text-[10px] font-mono ${Math.floor(planet.silicate) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                         {formatNumber(Math.floor(planet.silicate))}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <IsotopeIcon className="w-3 h-3 text-purple-400" />
-                      <span className="text-[10px] font-mono text-[#94a3b8]">
+                      <span className={`text-[10px] font-mono ${Math.floor(planet.isotope) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                         {formatNumber(Math.floor(planet.isotope))}
                       </span>
                     </div>
@@ -323,6 +335,36 @@ export default function Planets() {
                     <span>Pop: <span className="text-[#94a3b8] font-mono">{formatNumber(planet.population)}/{formatNumber(planet.populationCapacity)}</span></span>
                     <span>Storage: <span className="text-[#94a3b8] font-mono">{formatNumber(planet.storageCapacity)}</span></span>
                   </div>
+
+                  {/* Active building constructions */}
+                  {planet.queue && planet.queue.length > 0 && (
+                    <div className="mt-2.5 pt-2.5 border-t border-[#1e2028]/80 space-y-1">
+                      <div className="text-[8px] font-bold uppercase tracking-widest text-[#64748b] mb-1">
+                        Active Construction ({planet.queue.length})
+                      </div>
+                      <div className="space-y-1">
+                        {planet.queue.slice(0, 2).map((q, idx) => {
+                          const label = BUILDING_NAMES[q.buildingType] || q.buildingType;
+                          const isBuilding = q.status === "BUILDING";
+                          return (
+                            <div
+                              key={q.id || idx}
+                              className="flex items-center justify-between px-2 py-1 bg-[#111317] border border-[#2a2e38] text-[9px] font-mono"
+                            >
+                              <span className="text-white truncate max-w-[140px]">
+                                {label} <span className="text-[#00E5FF]">{q.targetLevel}</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {planet.queue.length > 2 && (
+                          <div className="text-[8px] text-[#64748b] text-right font-medium italic">
+                            + {planet.queue.length - 2} more in queue
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Planet tag list */}
@@ -441,11 +483,22 @@ export default function Planets() {
                   }`}
               >
                 <button onClick={() => selectPlanet(planet.id)} className="absolute inset-0 z-0" />
-                <div className="flex items-center gap-2 min-w-0 relative z-10 pointer-events-none">
-                  {isSelected && <Check className="w-3 h-3 text-[#00E5FF] shrink-0" />}
-                  <span className={`text-xs font-bold truncate ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
-                    {planet.name}
-                  </span>
+                <div className="flex flex-col gap-0.5 min-w-0 relative z-10 pointer-events-none">
+                  <div className="flex items-center gap-2">
+                    {isSelected && <Check className="w-3 h-3 text-[#00E5FF] shrink-0" />}
+                    <span className={`text-xs font-bold truncate ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
+                      {planet.name}
+                    </span>
+                  </div>
+                  {planet.queue && planet.queue.length > 0 && (
+                    <div className="text-[8px] text-[#00E5FF] font-mono uppercase tracking-tight truncate flex items-center gap-1 mt-0.5">
+                      <span className="w-1 h-1 bg-[#00E5FF] rounded-full animate-ping shrink-0" />
+                      <span>
+                        {BUILDING_NAMES[planet.queue[0].buildingType] || planet.queue[0].buildingType} L{planet.queue[0].targetLevel}
+                        {planet.queue.length > 1 && ` (+${planet.queue.length - 1})`}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <span className="text-[10px] font-mono text-[#94a3b8] relative z-10 pointer-events-none">
                   {planet.x}, {planet.y}
@@ -459,15 +512,21 @@ export default function Planets() {
                 <div className="flex items-center gap-3 relative z-10 pointer-events-none">
                   <div className="flex items-center gap-1">
                     <TitaniumIcon className="w-3 h-3 text-[#00E5FF]" />
-                    <span className="text-[10px] font-mono text-[#94a3b8]">{formatNumber(Math.floor(planet.titanium))}</span>
+                    <span className={`text-[10px] font-mono ${Math.floor(planet.titanium) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                      {formatNumber(Math.floor(planet.titanium))}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <SilicateIcon className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[10px] font-mono text-[#94a3b8]">{formatNumber(Math.floor(planet.silicate))}</span>
+                    <span className={`text-[10px] font-mono ${Math.floor(planet.silicate) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                      {formatNumber(Math.floor(planet.silicate))}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <IsotopeIcon className="w-3 h-3 text-purple-400" />
-                    <span className="text-[10px] font-mono text-[#94a3b8]">{formatNumber(Math.floor(planet.isotope))}</span>
+                    <span className={`text-[10px] font-mono ${Math.floor(planet.isotope) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                      {formatNumber(Math.floor(planet.isotope))}
+                    </span>
                   </div>
                 </div>
 

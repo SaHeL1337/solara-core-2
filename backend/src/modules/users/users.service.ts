@@ -126,6 +126,16 @@ export const getUserState = async (userId: string) => {
           buildings: true,
           spaceObject: true,
           tags: true,
+          queue: {
+            where: {
+              status: {
+                in: ["PENDING", "BUILDING"],
+              },
+            },
+            orderBy: {
+              position: "asc",
+            },
+          },
         },
       },
       tags: true,
@@ -138,7 +148,7 @@ export const getUserState = async (userId: string) => {
   if (!user) return null;
 
   const planetsWithProduction = user.planets.map((planet) => {
-    const { buildings, spaceObject, tags, ...rest } = planet;
+    const { buildings, spaceObject, tags, queue, ...rest } = planet;
     
     // Calculate on-the-fly resources
     const now = new Date();
@@ -164,6 +174,7 @@ export const getUserState = async (userId: string) => {
       sovereignty: planet.sovereignty,
       sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
       tags: tags || [],
+      queue: queue || [],
     };
   });
 

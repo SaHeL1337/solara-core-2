@@ -44,6 +44,7 @@ export interface Planet {
   sovereignty: number;
   sovereigntyUpdatedAt: string;
   tags: Tag[];
+  queue?: any[];
 }
 
 export interface UserState {
