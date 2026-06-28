@@ -1,11 +1,37 @@
-import { Rocket, Map, LayoutGrid, Building2, Medal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Rocket, Map, LayoutGrid, Building2, Medal, Shield, Mail, Copy, Check } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { SignOutButton } from "@clerk/clerk-react";
+import { SignOutButton, useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
 import { PlanetSelector } from "@/components/game/PlanetSelector";
+import api from "@/lib/api";
 
 export function Sidebar() {
   const location = useLocation();
+  const { user } = useUser();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const { data } = await api.get("/users/is-admin");
+        setIsAdmin(data.isAdmin);
+      } catch (err) {
+        // Not admin or error — hide admin panel
+        setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, []);
+
+  const copyUserId = () => {
+    if (user?.id) {
+      navigator.clipboard.writeText(user.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const menuItems = [
     { icon: LayoutGrid, label: "Overview", path: "/dashboard" },
@@ -13,6 +39,7 @@ export function Sidebar() {
     { icon: Rocket, label: "Shipyard", path: "/shipyard" },
     { icon: Medal, label: "Fleet", path: "/fleet" },
     { icon: Map, label: "Map", path: "/map" },
+    { icon: Mail, label: "Messages", path: "/messages" },
   ];
 
   return (
@@ -48,7 +75,51 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Admin Panel — only shown for game admins */}
+        {isAdmin && (
+          <>
+            <div className="mx-6 my-2 border-t border-[#2a2e38]/50" />
+            <Link
+              to="/admin"
+              className={cn(
+                "flex items-center gap-4 px-6 py-3 transition-colors text-sm font-medium border-l-2",
+                location.pathname.startsWith("/admin")
+                  ? "bg-[#1e2028] text-red-400 border-red-400"
+                  : "border-transparent text-red-400/60 hover:text-red-400 hover:bg-[#1e2028]/50",
+              )}
+            >
+              <Shield className={cn("size-5", location.pathname.startsWith("/admin") ? "text-red-400" : "text-red-400/60")} />
+              <span className="tracking-wide">Admin</span>
+            </Link>
+          </>
+        )}
       </nav>
+
+      {/* User ID display */}
+      {user?.id && (
+        <div className="px-6 pb-3">
+          <button
+            onClick={copyUserId}
+            className="w-full flex items-center gap-2 bg-[#111317] border border-[#2a2e38] hover:border-[#3b4252] py-2 px-3 text-left transition-colors group"
+            title={`Click to copy: ${user.id}`}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-[9px] font-bold text-[#64748b] tracking-widest uppercase mb-0.5">
+                User ID
+              </div>
+              <div className="text-[10px] font-mono text-[#94a3b8] truncate">
+                {user.id}
+              </div>
+            </div>
+            {copied ? (
+              <Check className="size-3 text-green-400 shrink-0" />
+            ) : (
+              <Copy className="size-3 text-[#64748b] group-hover:text-[#94a3b8] shrink-0 transition-colors" />
+            )}
+          </button>
+        </div>
+      )}
 
       <div className="p-6">
         <SignOutButton>

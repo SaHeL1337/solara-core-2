@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { ResourceService } from "../resources/resourc.service";
 import { SpaceObjectType } from "../../generated/prisma";
 import { generateMapObjects } from "../map/map.generator";
+import gameConfig from "../../config/game.json";
 
 export const createUser = async (id: string) => {
   // Ensure we have a SYSTEM user for NPC planets
@@ -21,7 +22,7 @@ export const createUser = async (id: string) => {
     update: {},
     create: {
       id: id,
-      flux: 1000,
+      flux: gameConfig.newPlayerSetup.flux,
     },
   });
 

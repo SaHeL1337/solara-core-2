@@ -1,4 +1,5 @@
 import { SpaceObjectType } from "../../generated/prisma";
+import gameConfig from "../../config/game.json";
 
 type Point = { x: number; y: number };
 
@@ -105,24 +106,29 @@ export const generateMapObjects = (
 
   const newObjects: any[] = [];
 
-  // Place player planet
+  // Place player planet — using newPlayerSetup from game config
+  const setup = gameConfig.newPlayerSetup;
+  const configBuildings = Object.entries(setup.buildings).map(([type, level]) => ({
+    type,
+    level,
+  }));
+  const configShips = setup.ships
+    ? Object.entries(setup.ships).map(([type, count]) => ({
+        type,
+        count,
+      }))
+    : [];
+
   newObjects.push({
     type: SpaceObjectType.PLANET,
     name: "Home Planet",
-    titanium: 5000,
-    silicate: 5000,
-    isotope: 2500,
+    titanium: setup.titanium,
+    silicate: setup.silicate,
+    isotope: setup.isotope,
     x: cx,
     y: cy,
-    buildings: [
-      { type: "TITANIUM_MINE", level: 5 },
-      { type: "SILICATE_MINE", level: 5 },
-      { type: "ISOTOPE_COLLECTOR", level: 3 },
-      { type: "SHIPYARD", level: 2 },
-      { type: "STORAGE", level: 2 },
-      { type: "HOUSING_BLOCK", level: 5 },
-    ],
-    ships: [{ type: "MINER", count: 5 }, { type: "FIGHTER", count: 3 }],
+    buildings: configBuildings,
+    ships: configShips,
   });
 
   for (

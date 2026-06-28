@@ -1,4 +1,5 @@
 {
+  "gameAdmins": ["user_3FRlFiMM5RDJ3rUe5h0EuD6ojEN"],
   "buildSpeedMultiplier": 1,
   "resourceProductionMultiplier": 1,
   "maxBuildQueue": 3,
@@ -11,6 +12,11 @@
       "HOUSING_BLOCK": 1,
       "GOVERNMENT_BUILDING": 1,
       "STORAGE": 1
+    },
+    "ships": {
+      "MINER": 500,
+      "FIGHTER": 3,
+      "SCANNER": 100
     }
   },
   "asteroidsPerPlayer": 3,

@@ -1,12 +1,19 @@
 import { Request, Response } from "express";
 import { Webhook } from "svix";
 import * as usersService from "./users.service";
+import gameConfig from "../../config/game.json";
 
 interface AuthenticatedRequest extends Request {
   auth: {
     userId: string;
   };
 }
+
+interface GameConfig {
+  gameAdmins: string[];
+}
+
+const config = gameConfig as GameConfig;
 
 export const createUser = async (req: Request, res: Response) => {
   //only usable by the clerk api
@@ -35,9 +42,31 @@ export const createUser = async (req: Request, res: Response) => {
 export const getUserState = async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.auth.userId;
-  const user = await usersService.getUserState(userId);
+  let user = await usersService.getUserState(userId);
+
   if (!user) {
-    return res.status(404).json({ error: "User not found" });
+    // User has a Clerk account but no game data — set them up as a new player
+    console.log(`[Users] Auto-creating game data for Clerk user: ${userId}`);
+    try {
+      await usersService.createUser(userId);
+      user = await usersService.getUserState(userId);
+    } catch (err) {
+      console.error("[Users] Failed to auto-create user:", err);
+      return res.status(500).json({ error: "Failed to initialize account" });
+    }
   }
+
+  if (!user) {
+    return res.status(500).json({ error: "Failed to load user state" });
+  }
+
   res.status(200).json(user);
 };
+
+export const isAdmin = async (req: Request, res: Response) => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.auth.userId;
+  const isAdmin = config.gameAdmins.includes(userId);
+  res.status(200).json({ isAdmin });
+};
+
