@@ -12,6 +12,8 @@ import {
   Timer,
   Crown,
   Shield,
+  Tag as TagIcon,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -67,7 +69,8 @@ export function MapDetailPanel({
   onClose,
 }: MapDetailPanelProps) {
   const navigate = useNavigate();
-  const { selectedPlanet } = useGame();
+  const { selectedPlanet, user, refreshUser } = useGame();
+  const [showMapTagsDropdown, setShowMapTagsDropdown] = useState(false);
 
   const isAsteroid = object.type === "asteroid";
   const isPlanet = object.type === "planet";
@@ -191,6 +194,22 @@ export function MapDetailPanel({
   const requiredMiners = Math.ceil(totalRes / minerCapacity);
   const validToSend = Math.max(0, Math.min(requiredMiners, minersAvailable || 0));
 
+  const userPlanet = user?.planets?.find((p) => p.id === object.id);
+  const userTags = user?.tags || [];
+
+  const toggleTagOnPlanet = async (planetId: string, tag: any, isAttached: boolean) => {
+    try {
+      if (isAttached) {
+        await api.delete(`/tags/planets/${planetId}/tags/${tag.id}`);
+      } else {
+        await api.post(`/tags/planets/${planetId}/tags/${tag.id}`);
+      }
+      await refreshUser();
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
   const handleQuickMine = async () => {
     if (!selectedPlanet || validToSend <= 0) return;
     try {
@@ -299,6 +318,87 @@ export function MapDetailPanel({
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {/* Planet Tags */}
+        {isSelf && userPlanet && (
+          <Section title="Planetary Tags" icon={TagIcon} iconColor="text-[#00E5FF]">
+            <div className="flex flex-col gap-2 bg-[#16181d] border border-[#1e2028] p-3">
+              {/* Badges */}
+              <div className="flex flex-wrap gap-1">
+                {userPlanet.tags && userPlanet.tags.length > 0 ? (
+                  userPlanet.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest border"
+                      style={{
+                        color: tag.color,
+                        borderColor: `${tag.color}30`,
+                        backgroundColor: `${tag.color}05`,
+                      }}
+                    >
+                      {tag.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[9px] text-[#3b4252] font-medium italic">No tags associated</span>
+                )}
+              </div>
+
+              {/* Tag Selector */}
+              <div className="relative mt-1">
+                <button
+                  onClick={() => setShowMapTagsDropdown(!showMapTagsDropdown)}
+                  className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-[#00E5FF] hover:text-white transition-colors"
+                >
+                  <Plus className="w-2.5 h-2.5" /> Edit Tags
+                </button>
+
+                {showMapTagsDropdown && (
+                  <div className="absolute left-0 top-full mt-1.5 w-48 bg-[#111317] border border-[#2a2e38] p-3 shadow-xl z-[1002] text-left">
+                    <div className="flex justify-between items-center pb-1.5 border-b border-[#2a2e38] mb-2">
+                      <span className="text-[9px] font-bold uppercase text-[#94a3b8]">Assign Tags</span>
+                      <button
+                        onClick={() => setShowMapTagsDropdown(false)}
+                        className="text-[#64748b] hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                    {userTags.length === 0 ? (
+                      <div className="text-[9px] text-center text-[#64748b] uppercase py-2">
+                        No tags. Go to Planet Manager to create tags.
+                      </div>
+                    ) : (
+                      <div className="max-h-32 overflow-y-auto space-y-1.5">
+                        {userTags.map((tag) => {
+                          const isAttached = userPlanet.tags?.some((t) => t.id === tag.id) || false;
+                          return (
+                            <label
+                              key={tag.id}
+                              className="flex items-center gap-2 text-[10px] text-[#e2e8f0] cursor-pointer hover:bg-[#1a1d24] p-1 select-none"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isAttached}
+                                onChange={() => toggleTagOnPlanet(userPlanet.id, tag, isAttached)}
+                                className="accent-[#00E5FF] w-3 h-3"
+                              />
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              <span className="truncate uppercase font-bold tracking-wider">{tag.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+        )}
+
         {/* Resources — for asteroids, always show; for planets, show from scan report */}
         {isAsteroid && (
           <Section title="Resources">

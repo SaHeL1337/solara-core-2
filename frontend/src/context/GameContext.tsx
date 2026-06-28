@@ -7,6 +7,13 @@ import {
 } from "react";
 import api from "@/lib/api";
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  properties: Record<string, any>;
+}
+
 // Define strict types for our resources and state
 export interface Planet {
   id: string;
@@ -26,6 +33,7 @@ export interface Planet {
   storageCapacity: number;
   sovereignty: number;
   sovereigntyUpdatedAt: string;
+  tags: Tag[];
 }
 
 export interface UserState {
@@ -37,6 +45,7 @@ export interface UserState {
   isDefeated: boolean;
   displayName: string | null;
   playerClass: string | null;
+  tags: Tag[];
 }
 
 interface GameContextType {

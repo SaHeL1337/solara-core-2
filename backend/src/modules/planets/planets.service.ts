@@ -7,12 +7,13 @@ export const getPlanetState = async (userId: string, planetId: string) => {
     include: {
       buildings: true,
       spaceObject: true,
+      tags: true,
     },
   });
 
   if (!planet) return null;
 
-  const { spaceObject, buildings, ...rest } = planet;
+  const { spaceObject, buildings, tags, ...rest } = planet;
   
   const now = new Date();
   const secondsElapsed = Math.max(0, (now.getTime() - spaceObject!.updatedAt.getTime()) / 1000);
@@ -37,6 +38,7 @@ export const getPlanetState = async (userId: string, planetId: string) => {
     production: productionRates,
     sovereignty: planet.sovereignty,
     sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
+    tags: tags || [],
   };
 };
 

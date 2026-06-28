@@ -19,6 +19,7 @@ model User {
   fleetMovements  FleetMovement[]
   receivedMessages Message[] @relation("ReceivedMessages")
   scanReports     ScanReport[]
+  tags            Tag[]
 }
 
 
@@ -65,6 +66,7 @@ model Planet {
   sovereigntyUpdatedAt DateTime @default(now())
   
   scanReports     ScanReport[]
+  tags            Tag[] @relation("PlanetTags")
 }
 
 enum MissionType {
@@ -216,4 +218,16 @@ model ScanReport {
   createdAt DateTime @default(now())
 
   @@unique([userId, planetId])
+}
+
+model Tag {
+  id         String   @id @default(uuid())
+  name       String
+  color      String   @default("#00E5FF")
+  properties Json     @default("{}")
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planets    Planet[] @relation("PlanetTags")
+
+  @@unique([userId, name])
 }

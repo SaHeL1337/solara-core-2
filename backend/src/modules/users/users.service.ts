@@ -125,15 +125,17 @@ export const getUserState = async (userId: string) => {
         include: {
           buildings: true,
           spaceObject: true,
+          tags: true,
         },
       },
+      tags: true,
     },
   });
 
   if (!user) return null;
 
   const planetsWithProduction = user.planets.map((planet) => {
-    const { buildings, spaceObject, ...rest } = planet;
+    const { buildings, spaceObject, tags, ...rest } = planet;
     
     // Calculate on-the-fly resources
     const now = new Date();
@@ -158,6 +160,7 @@ export const getUserState = async (userId: string) => {
       production: productionRates,
       sovereignty: planet.sovereignty,
       sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
+      tags: tags || [],
     };
   });
 
@@ -168,6 +171,7 @@ export const getUserState = async (userId: string) => {
     isDefeated: user.isDefeated,
     displayName: user.displayName,
     playerClass: user.playerClass,
+    tags: user.tags || [],
   };
 };
 
