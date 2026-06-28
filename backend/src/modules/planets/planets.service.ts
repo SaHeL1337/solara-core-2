@@ -35,6 +35,8 @@ export const getPlanetState = async (userId: string, planetId: string) => {
     silicate: newSilicate,
     isotope: newIsotope,
     production: productionRates,
+    sovereignty: planet.sovereignty,
+    sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
   };
 };
 

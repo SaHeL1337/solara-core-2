@@ -10,6 +10,8 @@ import {
   Compass,
   Swords,
   Timer,
+  Crown,
+  Shield,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -150,11 +152,11 @@ export function MapDetailPanel({
       const list = Array.isArray(data.data) ? data.data : (data.data.active || []);
       const filtered = list.filter((m: any) => m.targetId === object.id || m.originId === object.id);
 
-      // Refresh scan report immediately if a scan probe mission has finished
-      const hadScan = movementsRef.current.some((m: any) => m.missionType === "SCAN" && m.status === "EN_ROUTE");
-      const hasScan = filtered.some((m: any) => m.missionType === "SCAN" && m.status === "EN_ROUTE");
+      // Refresh scan report immediately if a scan probe, conquer, or attack mission has finished
+      const hadMission = movementsRef.current.some((m: any) => ["SCAN", "CONQUER", "ATTACK"].includes(m.missionType) && m.status === "EN_ROUTE");
+      const hasMission = filtered.some((m: any) => ["SCAN", "CONQUER", "ATTACK"].includes(m.missionType) && m.status === "EN_ROUTE");
 
-      if (hadScan && !hasScan) {
+      if (hadMission && !hasMission) {
         setTimeout(() => {
           api.get(`/map/objects/${object.id}/report`)
             .then((res) => {
@@ -381,6 +383,34 @@ export function MapDetailPanel({
           </>
         )}
 
+        {/* Sovereignty Bar — shown for planets with scan data */}
+        {isPlanet && scanReport && !scanReport.failed && scanReport.sovereignty !== undefined && (
+          <Section title="Sovereignty" icon={Shield} iconColor="text-amber-400">
+            <div className="bg-[#16181d] border border-[#1e2028] p-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Planetary Defense</span>
+                <span className={`text-xs font-mono font-bold ${
+                  scanReport.sovereignty > 75 ? 'text-emerald-400' :
+                  scanReport.sovereignty > 40 ? 'text-amber-400' :
+                  scanReport.sovereignty > 0 ? 'text-red-400' : 'text-[#64748b]'
+                }`}>
+                  {scanReport.sovereignty}/100
+                </span>
+              </div>
+              <div className="w-full h-2 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    scanReport.sovereignty > 75 ? 'bg-emerald-500' :
+                    scanReport.sovereignty > 40 ? 'bg-amber-500' :
+                    scanReport.sovereignty > 0 ? 'bg-red-500' : 'bg-[#2a2e38]'
+                  }`}
+                  style={{ width: `${scanReport.sovereignty}%` }}
+                />
+              </div>
+            </div>
+          </Section>
+        )}
+
         {/* No scan data yet for planet */}
         {isPlanet && !scanReport && !movements.some((m: any) => m.missionType === "SCAN" && m.status === "EN_ROUTE") && (
           <Section title="Intel">
@@ -424,7 +454,7 @@ export function MapDetailPanel({
             />
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <ActionButton
               icon={WifiHigh}
               label="Scan"
@@ -439,6 +469,13 @@ export function MapDetailPanel({
               onClick={() => navigate(`/fleet?action=ATTACK&targetX=${object.x}&targetY=${object.y}`)}
               disabled={isSelf}
               variant="danger"
+            />
+            <ActionButton
+              icon={Crown}
+              label="Conquer"
+              onClick={() => navigate(`/fleet?action=CONQUER&targetX=${object.x}&targetY=${object.y}`)}
+              disabled={isSelf}
+              variant="conquest"
             />
             <ActionButton
               icon={Zap}
@@ -516,13 +553,14 @@ function ActionButton({
   badge?: string;
   onClick: () => void;
   disabled?: boolean;
-  variant?: "primary" | "secondary" | "danger" | "success";
+  variant?: "primary" | "secondary" | "danger" | "success" | "conquest";
 }) {
   const styles = {
     primary: "bg-[#00E5FF]/10 border-[#00E5FF]/30 text-[#00E5FF] hover:bg-[#00E5FF]/20",
     secondary: "bg-[#1e2028] border-[#2a2e38] text-[#94a3b8] hover:bg-[#2a2e38] hover:text-[#e2e8f0]",
     danger: "bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20",
     success: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20",
+    conquest: "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20",
   };
 
   const badgeColors = {
@@ -530,6 +568,7 @@ function ActionButton({
     secondary: "bg-zinc-800 text-[#94a3b8] border-zinc-700",
     danger: "bg-red-500/20 text-red-400 border-red-500/30",
     success: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    conquest: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   };
 
   return (
@@ -586,6 +625,7 @@ function FleetActivityItem({ fleet }: { fleet: any }) {
     SCAN: "text-emerald-400 border-emerald-500/20 bg-emerald-500/5",
     EXPLORE: "text-indigo-400 border-indigo-500/20 bg-indigo-500/5",
     SUPPORT: "text-amber-400 border-amber-500/20 bg-amber-500/5",
+    CONQUER: "text-amber-300 border-amber-400/20 bg-amber-400/5",
   }[fleet.missionType as string] || "text-zinc-400 border-zinc-500/20 bg-zinc-500/5";
 
   return (

@@ -23,6 +23,12 @@ async function startWorker() {
     } catch (error) {
       console.error("Worker error processing fleet movements:", error);
     }
+
+    try {
+      await jobService.processSovereigntyRegeneration();
+    } catch (error) {
+      console.error("Worker error processing sovereignty regen:", error);
+    }
   }, POLL_INTERVAL_MS);
 }
 

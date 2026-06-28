@@ -7,5 +7,6 @@ const router = Router();
 router.post("/create", usersController.createUser);
 router.get("/state", requireAuth, usersController.getUserState);
 router.get("/is-admin", requireAuth, usersController.isAdmin);
+router.post("/setup", requireAuth, usersController.completeSetup);
 
 export default router;

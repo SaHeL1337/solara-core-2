@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { MissionType, FleetMovementStatus } from "../../generated/prisma";
+import { MissionType, FleetMovementStatus, SpaceObjectType } from "../../generated/prisma";
 import { getShipConfig } from "../ships/ships.config.service";
 import { getBuildingLevel } from "../buildings/buildings.service";
 
@@ -29,6 +29,25 @@ export class FleetService {
 
       if (!targetObject) {
         throw new Error("Target space object not found");
+      }
+
+      // 2b. Validate CONQUER mission requirements
+      if (missionType === MissionType.CONQUER) {
+        if (targetObject.type !== SpaceObjectType.PLANET) {
+          throw new Error("Conquest missions can only target planets");
+        }
+        const targetPlanet = await tx.planet.findUnique({
+          where: { id: targetId }
+        });
+        if (targetPlanet && targetPlanet.ownerId === userId) {
+          throw new Error("You cannot conquer your own planet");
+        }
+        const hasColonyShip = Object.entries(ships).some(
+          ([type, qty]) => type === "COLONY_SHIP" && (qty as number) > 0
+        );
+        if (!hasColonyShip) {
+          throw new Error("Conquest missions require at least one Colony Ship");
+        }
       }
 
       // 3. Deduct ships and calculate fleet speed

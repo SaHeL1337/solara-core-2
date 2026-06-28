@@ -24,7 +24,8 @@ export interface Planet {
   population: number;
   populationCapacity: number;
   storageCapacity: number;
-  // Add other planet properties as needed (e.g., coordinates, type)
+  sovereignty: number;
+  sovereigntyUpdatedAt: string;
 }
 
 export interface UserState {
@@ -32,12 +33,17 @@ export interface UserState {
   username: string;
   flux: number;
   planets: Planet[];
+  isSetupComplete: boolean;
+  isDefeated: boolean;
+  displayName: string | null;
+  playerClass: string | null;
 }
 
 interface GameContextType {
   user: UserState | null;
   selectedPlanet: Planet | null;
   isLoading: boolean;
+  isCoreOffline: boolean;
   refreshUser: () => Promise<void>;
   selectPlanet: (planetId: string) => void;
 }
@@ -48,11 +54,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserState | null>(null);
   const [selectedPlanet, setSelectedPlanet] = useState<Planet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCoreOffline, setIsCoreOffline] = useState(false);
 
   const fetchUser = async () => {
     try {
       const { data } = await api.get("/users/state");
       setUser(data);
+      setIsCoreOffline(false);
 
       // Update selected planet with fresh data without relying on stale closures
       if (data.planets && data.planets.length > 0) {
@@ -64,8 +72,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           return updatedPlanet || data.planets[0];
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch user state:", error);
+      // Check if it's a network error or gateway status
+      if (!error.response || [502, 503, 504].includes(error.response.status)) {
+        setIsCoreOffline(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +105,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         user,
         selectedPlanet,
         isLoading,
+        isCoreOffline,
         refreshUser: fetchUser,
         selectPlanet,
       }}

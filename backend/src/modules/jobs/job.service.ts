@@ -10,6 +10,7 @@ import { getBuildingLevel } from "../buildings/buildings.service";
 import { createMessage } from "../messages/messages.service";
 import { MessageCategory } from "../../generated/prisma";
 import { ResourceService } from "../resources/resourc.service";
+import gameConfig from "../../config/game.json";
 
 export class JobService {
   async processCompletedBuildings() {
@@ -492,7 +493,8 @@ export class JobService {
                   targetName: f.target?.name || "Unknown",
                   ships: f.ships.map((s: any) => ({ type: s.type, count: s.count }))
                 })),
-                ownerId: target.planet.ownerId
+                ownerId: target.planet.ownerId,
+                sovereignty: target.planet.sovereignty,
               };
 
               // Upsert the scan report
@@ -547,19 +549,216 @@ export class JobService {
             });
           }
         }
+      } else if (missionType === MissionType.CONQUER) {
+        if (!targetId) {
+          console.log(`  Conquest mission ${id} target was destroyed before arrival. Skipping.`);
+          await createMessage({
+            recipientId: fleet.userId,
+            title: "Conquest Mission: Target Lost",
+            body: JSON.stringify({
+              type: "CONQUER_FAIL",
+              message: "Your fleet arrived at the coordinates, but the target planet was no longer there.",
+              targetX: fleet.targetX,
+              targetY: fleet.targetY,
+            }),
+            category: MessageCategory.CONQUEST,
+            tags: ["conquest", "system"],
+          });
+        } else {
+          const target = await tx.spaceObject.findUnique({
+            where: { id: targetId },
+            include: {
+              planet: {
+                include: {
+                  owner: true,
+                }
+              }
+            }
+          });
+
+          if (target && target.planet) {
+            console.log(`  Executing CONQUER mission at ${target.name}`);
+
+            // TODO: Combat resolution — for now assume victory
+            const combatWon = true;
+
+            if (!combatWon) {
+              // Colony ship destroyed, fleet returns
+              console.log(`  Combat lost at ${target.name}. Colony ship destroyed.`);
+            } else {
+              // Calculate sovereignty reduction with randomness
+              const conquestConfig = (gameConfig as any).conquest;
+              const baseReduction = Math.floor(
+                Math.random() * (conquestConfig.sovereigntyReductionMax - conquestConfig.sovereigntyReductionMin + 1)
+              ) + conquestConfig.sovereigntyReductionMin;
+              
+              // TODO: Apply modifiers here in the future
+              const totalReduction = baseReduction;
+
+              const currentSovereignty = target.planet.sovereignty;
+              const newSovereignty = Math.max(0, currentSovereignty - totalReduction);
+
+              console.log(`  Sovereignty reduced: ${currentSovereignty} -> ${newSovereignty} (reduction: ${totalReduction})`);
+
+              if (newSovereignty <= 0) {
+                // Planet conquered! Transfer ownership
+                const previousOwnerId = target.planet.ownerId;
+                const attackerId = fleet.userId;
+
+                await tx.planet.update({
+                  where: { id: target.planet.id },
+                  data: {
+                    ownerId: attackerId,
+                    sovereignty: conquestConfig.sovereigntyAfterConquest || 50,
+                    sovereigntyUpdatedAt: new Date(),
+                  },
+                });
+
+                console.log(`  Planet ${target.name} conquered! Ownership transferred from ${previousOwnerId} to ${attackerId}`);
+
+                // Send conquest success message to attacker
+                await createMessage({
+                  recipientId: attackerId,
+                  title: `Planet Conquered: ${target.name}`,
+                  body: JSON.stringify({
+                    type: "CONQUEST_SUCCESS",
+                    targetName: target.name,
+                    planetId: target.planet.id,
+                    previousOwner: previousOwnerId,
+                    sovereigntyReduction: totalReduction,
+                    targetX: target.x,
+                    targetY: target.y,
+                  }),
+                  category: MessageCategory.CONQUEST,
+                  tags: ["conquest", "success"],
+                });
+
+                // Send planet lost message to defender (if not SYSTEM)
+                if (previousOwnerId !== "SYSTEM") {
+                  await createMessage({
+                    recipientId: previousOwnerId,
+                    title: `Planet Lost: ${target.name}`,
+                    body: JSON.stringify({
+                      type: "PLANET_LOST",
+                      targetName: target.name,
+                      planetId: target.planet.id,
+                      conqueredBy: attackerId,
+                      targetX: target.x,
+                      targetY: target.y,
+                    }),
+                    category: MessageCategory.CONQUEST,
+                    tags: ["conquest", "lost"],
+                  });
+
+                  // Check if defender has any remaining planets
+                  const remainingPlanets = await tx.planet.count({
+                    where: { ownerId: previousOwnerId },
+                  });
+
+                  if (remainingPlanets === 0) {
+                    console.log(`  Player ${previousOwnerId} has been defeated! No remaining planets.`);
+                    
+                    await tx.user.update({
+                      where: { id: previousOwnerId },
+                      data: { isDefeated: true, isSetupComplete: false },
+                    });
+
+                    await createMessage({
+                      recipientId: previousOwnerId,
+                      title: "Defeat: All Planets Lost",
+                      body: JSON.stringify({
+                        type: "DEFEATED",
+                        message: "You have lost all your planets. Set up a new command center to continue playing.",
+                      }),
+                      category: MessageCategory.CONQUEST,
+                      tags: ["conquest", "defeated"],
+                    });
+                  }
+                }
+              } else {
+                // Sovereignty reduced but not conquered yet
+                await tx.planet.update({
+                  where: { id: target.planet.id },
+                  data: {
+                    sovereignty: newSovereignty,
+                    sovereigntyUpdatedAt: new Date(),
+                  },
+                });
+
+                // Send siege progress message to attacker
+                await createMessage({
+                  recipientId: fleet.userId,
+                  title: `Siege Progress: ${target.name}`,
+                  body: JSON.stringify({
+                    type: "CONQUEST_PROGRESS",
+                    targetName: target.name,
+                    planetId: target.planet.id,
+                    sovereigntyReduction: totalReduction,
+                    remainingSovereignty: newSovereignty,
+                    targetX: target.x,
+                    targetY: target.y,
+                  }),
+                  category: MessageCategory.CONQUEST,
+                  tags: ["conquest", "progress"],
+                });
+
+                // Send under attack message to defender (if not SYSTEM)
+                if (target.planet.ownerId !== "SYSTEM") {
+                  await createMessage({
+                    recipientId: target.planet.ownerId,
+                    title: `Planet Under Attack: ${target.name}`,
+                    body: JSON.stringify({
+                      type: "PLANET_UNDER_ATTACK",
+                      targetName: target.name,
+                      planetId: target.planet.id,
+                      sovereigntyRemaining: newSovereignty,
+                      targetX: target.x,
+                      targetY: target.y,
+                    }),
+                    category: MessageCategory.CONQUEST,
+                    tags: ["conquest", "attack"],
+                  });
+                }
+              }
+            }
+
+            // Colony ship is consumed on arrival (if configured)
+            const conquestCfg = (gameConfig as any).conquest;
+            if (conquestCfg.colonyShipConsumed) {
+              // Remove colony ships from the fleet (they are consumed)
+              await tx.fleetShip.updateMany({
+                where: { fleetMovementId: id, type: "COLONY_SHIP" },
+                data: { count: 0 },
+              });
+            }
+          }
+        }
       }
 
-      const travelDuration =
-        fleet.arrivalTime.getTime() - fleet.startTime.getTime();
-      const returnArrivalTime = new Date(Date.now() + travelDuration);
-
-      await tx.fleetMovement.update({
-        where: { id },
-        data: {
-          status: FleetMovementStatus.RETURNING,
-          returnArrivalTime,
-        },
+      // Check if there are any ships left to return (colony ships may have been consumed)
+      const remainingShips = await tx.fleetShip.findMany({
+        where: { fleetMovementId: id, count: { gt: 0 } },
       });
+
+      if (remainingShips.length === 0) {
+        // No ships left — mark as completed directly
+        await tx.fleetMovement.update({
+          where: { id },
+          data: { status: FleetMovementStatus.COMPLETED },
+        });
+      } else {
+        const travelDuration =
+          fleet.arrivalTime.getTime() - fleet.startTime.getTime();
+        const returnArrivalTime = new Date(Date.now() + travelDuration);
+
+        await tx.fleetMovement.update({
+          where: { id },
+          data: {
+            status: FleetMovementStatus.RETURNING,
+            returnArrivalTime,
+          },
+        });
+      }
     });
   }
 
@@ -638,6 +837,43 @@ export class JobService {
       });
       console.log(`  Fleet mission ${fleet.id} COMPLETED.`);
     });
+  }
+
+  async processSovereigntyRegeneration() {
+    try {
+      const conquestConfig = (gameConfig as any).conquest;
+      const maxSovereignty = conquestConfig.maxSovereignty;
+      const regenPerHour = conquestConfig.sovereigntyRegenPerHour;
+
+      // Find all planets with sovereignty below max
+      const damagedPlanets = await prisma.planet.findMany({
+        where: {
+          sovereignty: { lt: maxSovereignty },
+        },
+      });
+
+      for (const planet of damagedPlanets) {
+        const now = new Date();
+        const lastUpdate = planet.sovereigntyUpdatedAt;
+        const hoursElapsed = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+        if (hoursElapsed >= 1) {
+          const regenPoints = Math.floor(hoursElapsed * regenPerHour);
+          if (regenPoints > 0) {
+            const newSovereignty = Math.min(maxSovereignty, planet.sovereignty + regenPoints);
+            await prisma.planet.update({
+              where: { id: planet.id },
+              data: {
+                sovereignty: newSovereignty,
+                sovereigntyUpdatedAt: now,
+              },
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error processing sovereignty regeneration:", error);
+    }
   }
 }
 

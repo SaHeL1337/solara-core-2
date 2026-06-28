@@ -15,6 +15,7 @@ import Fleet from "@/pages/game/Fleet";
 import Map from "@/pages/game/Map";
 import Messages from "@/pages/game/Messages";
 import AdminPanel from "@/pages/game/AdminPanel";
+import Planets from "@/pages/game/Planets";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/fleet" element={<Fleet />} />
           <Route path="/map" element={<Map />} />
           <Route path="/messages" element={<Messages />} />
+          <Route path="/planets" element={<Planets />} />
           <Route path="/admin" element={<AdminPanel />} />
           {/* If they try to go to /game, redirect to /dashboard */}
           <Route path="/game" element={<Navigate to="/dashboard" replace />} />

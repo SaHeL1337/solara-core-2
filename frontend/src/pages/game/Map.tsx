@@ -356,6 +356,8 @@ export default function Map() {
     }
   }, [selectedPlanet]);
 
+  const activeMissionsRef = useRef<string[]>([]);
+
   // Fetch current mining targets
   useEffect(() => {
     const fetchMovements = async () => {
@@ -363,6 +365,7 @@ export default function Map() {
         const { data } = await api.get("/fleet/movements");
         const miningIds = new Set<string>();
         const scanIds = new Set<string>();
+        const currentActiveMissions: string[] = [];
 
         const movements = Array.isArray(data.data) ? data.data : (data.data.active || []);
         movements.forEach((m: any) => {
@@ -372,9 +375,23 @@ export default function Map() {
           if (m.missionType === "SCAN" && m.status === "EN_ROUTE" && m.targetId) {
             scanIds.add(m.targetId);
           }
+          if (["SCAN", "CONQUER", "ATTACK"].includes(m.missionType) && m.status === "EN_ROUTE") {
+            currentActiveMissions.push(m.id);
+          }
         });
 
         let changed = false;
+        
+        // If a previously active mission completed, trigger map reload
+        const hasCompletedMission = activeMissionsRef.current.some(
+          (id) => !currentActiveMissions.includes(id)
+        );
+        activeMissionsRef.current = currentActiveMissions;
+
+        if (hasCompletedMission) {
+          changed = true;
+        }
+
         setActiveScanTargets((prev) => {
           if (prev.size !== scanIds.size) {
             changed = true;
@@ -399,7 +416,7 @@ export default function Map() {
       }
     };
     fetchMovements();
-    const interval = setInterval(fetchMovements, 15000);
+    const interval = setInterval(fetchMovements, 5000);
     return () => clearInterval(interval);
   }, []);
 

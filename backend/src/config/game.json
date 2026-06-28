@@ -19,9 +19,19 @@
     "ships": {
       "MINER": 500,
       "FIGHTER": 3,
-      "SCANNER": 100
+      "SCANNER": 100,
+      "COLONY_SHIP": 100 
     }
   },
+  "conquest": {
+    "sovereigntyReductionMin": 15,
+    "sovereigntyReductionMax": 25,
+    "sovereigntyRegenPerHour": 1,
+    "maxSovereignty": 100,
+    "sovereigntyAfterConquest": 50,
+    "colonyShipConsumed": true
+  },
+  "playerClasses": ["WARLORD", "TRADER", "ENGINEER"],
   "asteroidsPerPlayer": 3,
   "blackHolesPerPlayer": 1,
   "npcPlanetsPerPlayer": 5

@@ -70,3 +70,21 @@ export const isAdmin = async (req: Request, res: Response) => {
   res.status(200).json({ isAdmin });
 };
 
+export const completeSetup = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const userId = authReq.auth.userId;
+    const { displayName, playerClass } = req.body;
+
+    if (!displayName || !playerClass) {
+      return res.status(400).json({ error: "displayName and playerClass are required" });
+    }
+
+    const result = await usersService.completePlayerSetup(userId, displayName, playerClass);
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("[Users] Setup failed:", error);
+    res.status(400).json({ error: error.message });
+  }
+};
+

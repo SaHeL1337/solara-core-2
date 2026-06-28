@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { Rocket, Map, LayoutGrid, Building2, Medal, Shield, Mail, Copy, Check } from "lucide-react";
+import { Rocket, Map, LayoutGrid, Building2, Medal, Shield, Mail, Copy, Check, Globe } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { SignOutButton, useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
-import { PlanetSelector } from "@/components/game/PlanetSelector";
+import { useGame } from "@/context/GameContext";
 import api from "@/lib/api";
 
 export function Sidebar() {
@@ -39,6 +39,7 @@ export function Sidebar() {
     { icon: Rocket, label: "Shipyard", path: "/shipyard" },
     { icon: Medal, label: "Fleet", path: "/fleet" },
     { icon: Map, label: "Map", path: "/map" },
+    { icon: Globe, label: "Planets", path: "/planets" },
     { icon: Mail, label: "Messages", path: "/messages" },
   ];
 
@@ -53,7 +54,7 @@ export function Sidebar() {
         </div>
         
         {/* Planet Selector / Sector Info */}
-        <PlanetSelector />
+        <PlanetLink />
       </div>
 
       <nav className="flex-1 py-6 space-y-1 overflow-y-auto">
@@ -129,5 +130,27 @@ export function Sidebar() {
         </SignOutButton>
       </div>
     </div>
+  );
+}
+
+function PlanetLink() {
+  const { selectedPlanet, user } = useGame();
+
+  return (
+    <Link to="/planets" className="block group">
+      <div className="text-[10px] text-[#00E5FF] font-bold uppercase tracking-widest mb-1">
+        COMMAND_SECTOR
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-[#94a3b8] group-hover:text-[#e2e8f0] transition-colors truncate">
+          {selectedPlanet?.name || "No planet"}
+        </span>
+        {user?.planets && user.planets.length > 1 && (
+          <span className="text-[9px] font-mono font-bold bg-[#1e2028] text-[#64748b] px-1.5 py-0.5 border border-[#2a2e38] ml-2 shrink-0">
+            {user.planets.length}
+          </span>
+        )}
+      </div>
+    </Link>
   );
 }

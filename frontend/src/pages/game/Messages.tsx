@@ -18,10 +18,12 @@ import {
   WifiHigh,
   Factory,
   ShieldAlert,
+  Crown,
+  Shield,
 } from "lucide-react";
 import { TitaniumIcon, SilicateIcon, IsotopeIcon } from "@/components/ui/icons";
 
-type MessageCategory = "SYSTEM" | "PLAYER" | "MINING" | "ATTACK" | "EXPLORE";
+type MessageCategory = "SYSTEM" | "PLAYER" | "MINING" | "ATTACK" | "EXPLORE" | "CONQUEST";
 
 type Message = {
   id: string;
@@ -113,6 +115,11 @@ export default function Messages() {
       label: "System",
       icon: <Info className="w-3.5 h-3.5 text-amber-400" />,
     },
+    {
+      id: "CONQUEST",
+      label: "Conquest",
+      icon: <Crown className="w-3.5 h-3.5 text-amber-400" />,
+    },
   ];
 
   if (isLoading) {
@@ -198,12 +205,13 @@ function MessageItem({
   toggleExpand: () => void;
   onDelete: () => void;
 }) {
-  const categoryIcons = {
+  const categoryIcons: Record<string, JSX.Element> = {
     SYSTEM: <Info className="w-4 h-4 text-amber-400" />,
     PLAYER: <UserIcon className="w-4 h-4 text-purple-400" />,
     MINING: <Pickaxe className="w-4 h-4 text-[#00E5FF]" />,
     ATTACK: <Target className="w-4 h-4 text-red-500" />,
     EXPLORE: <MapIcon className="w-4 h-4 text-indigo-400" />,
+    CONQUEST: <Crown className="w-4 h-4 text-amber-400" />,
   };
 
   return (
@@ -470,6 +478,152 @@ function MessageBody({ body }: { body: string }) {
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "CONQUEST_SUCCESS") {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-start gap-4">
+            <p className="border-l-2 border-amber-500 pl-3 py-1 bg-amber-500/5 flex-1">
+              <Crown className="w-4 h-4 inline text-amber-400 mr-1" />
+              Planet <span className="text-amber-400 font-bold">{data.targetName}</span> has been conquered! 
+              Sovereignty broken. All infrastructure and resources are now under your control.
+            </p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "CONQUEST_PROGRESS") {
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-start gap-4">
+            <p className="border-l-2 border-amber-500 pl-3 py-1 bg-amber-500/5 flex-1">
+              Siege on <span className="text-amber-400 font-bold">{data.targetName}</span> continues. 
+              Sovereignty reduced by <span className="text-amber-400 font-bold">{data.sovereigntyReduction}</span> points.
+            </p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+          <div className="bg-[#1a1d24] border border-[#2a2e38] p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-1">
+                <Shield className="w-3 h-3 text-amber-400" /> Remaining Sovereignty
+              </span>
+              <span className={`text-xs font-mono font-bold ${
+                data.remainingSovereignty > 40 ? 'text-amber-400' : 'text-red-400'
+              }`}>
+                {data.remainingSovereignty}/100
+              </span>
+            </div>
+            <div className="w-full h-2 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
+              <div
+                className={`h-full transition-all ${
+                  data.remainingSovereignty > 40 ? 'bg-amber-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${data.remainingSovereignty}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "PLANET_LOST") {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-3 bg-red-900/10 border border-red-500/20 p-4 relative">
+            <ShieldAlert className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="text-red-200 text-sm leading-relaxed pr-24">
+              Your planet <span className="text-red-400 font-bold">{data.targetName}</span> has been 
+              conquered by enemy forces. All assets on the planet have been seized.
+            </p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="absolute right-4 top-4 shrink-0 flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "PLANET_UNDER_ATTACK") {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-3 bg-amber-900/10 border border-amber-500/20 p-4 relative">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 animate-pulse" />
+            <div className="flex-1 pr-24">
+              <p className="text-amber-200 text-sm leading-relaxed">
+                Your planet <span className="text-amber-400 font-bold">{data.targetName}</span> is under siege!
+                Sovereignty reduced to <span className="text-amber-400 font-bold">{data.sovereigntyRemaining}/100</span>.
+              </p>
+            </div>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="absolute right-4 top-4 shrink-0 flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "DEFEATED") {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-3 bg-red-900/20 border border-red-500/30 p-6">
+            <ShieldAlert className="w-6 h-6 text-red-500 shrink-0" />
+            <div>
+              <p className="text-red-200 text-sm leading-relaxed mb-2 font-bold">
+                Total Defeat
+              </p>
+              <p className="text-red-300/80 text-sm leading-relaxed">
+                {data.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (data.type === "CONQUER_FAIL") {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-3 bg-red-900/10 border border-red-500/20 p-4 relative">
+            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="text-red-200 text-sm leading-relaxed pr-24">{data.message}</p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="absolute right-4 top-4 shrink-0 flex items-center gap-1.5 px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
             )}
           </div>
         </div>

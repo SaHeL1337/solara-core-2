@@ -156,11 +156,146 @@ export const getUserState = async (userId: string) => {
       silicate: newSilicate,
       isotope: newIsotope,
       production: productionRates,
+      sovereignty: planet.sovereignty,
+      sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
     };
   });
 
   return {
     ...user,
     planets: planetsWithProduction,
+    isSetupComplete: user.isSetupComplete,
+    isDefeated: user.isDefeated,
+    displayName: user.displayName,
+    playerClass: user.playerClass,
   };
+};
+
+export const completePlayerSetup = async (
+  userId: string,
+  displayName: string,
+  playerClass: string,
+) => {
+  const validClasses = (gameConfig as any).playerClasses || [];
+  if (!validClasses.includes(playerClass)) {
+    throw new Error(`Invalid player class. Choose from: ${validClasses.join(", ")}`);
+  }
+
+  if (!displayName || displayName.trim().length < 2 || displayName.trim().length > 24) {
+    throw new Error("Display name must be between 2 and 24 characters");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { planets: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // If the user is defeated and has no planets, give them a fresh start
+  if (user.isDefeated || user.planets.length === 0) {
+    await resetDefeatedPlayer(userId);
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      displayName: displayName.trim(),
+      playerClass,
+      isSetupComplete: true,
+      isDefeated: false,
+    },
+  });
+
+  return { success: true };
+};
+
+export const resetDefeatedPlayer = async (userId: string) => {
+  // Reset flux
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      flux: gameConfig.newPlayerSetup.flux,
+    },
+  });
+
+  // Find existing objects to determine spawn location
+  const existingObjects = await prisma.spaceObject.findMany({
+    select: { x: true, y: true },
+  });
+
+  const newObjectsRaw = generateMapObjects(existingObjects, false, userId);
+
+  // Separate the player planet
+  const playerPlanetDataRaw = newObjectsRaw.shift();
+  if (!playerPlanetDataRaw) {
+    throw new Error("Failed to generate player planet data");
+  }
+
+  const { randomUUID } = await import("crypto");
+
+  const spaceObjectsToCreate: any[] = [];
+  const planetsToCreate: any[] = [];
+  const planetBuildingsToCreate: any[] = [];
+  const planetShipsToCreate: any[] = [];
+
+  const processObject = (raw: any, ownerId: string) => {
+    const objectId = randomUUID();
+    spaceObjectsToCreate.push({
+      id: objectId,
+      type: raw.type,
+      name: raw.name,
+      titanium: raw.titanium,
+      silicate: raw.silicate,
+      isotope: raw.isotope,
+      x: raw.x,
+      y: raw.y,
+    });
+
+    if (raw.type === SpaceObjectType.PLANET) {
+      planetsToCreate.push({
+        id: objectId,
+        ownerId: ownerId,
+        population: 500,
+        populationCapacity: 1000,
+        storageCapacity: 10000,
+        sovereignty: 100,
+      });
+
+      if (raw.buildings) {
+        raw.buildings.forEach((b: any) => {
+          planetBuildingsToCreate.push({
+            planetId: objectId,
+            type: b.type,
+            level: b.level,
+          });
+        });
+      }
+
+      if (raw.ships) {
+        raw.ships.forEach((s: any) => {
+          planetShipsToCreate.push({
+            planetId: objectId,
+            type: s.type,
+            count: s.count,
+          });
+        });
+      }
+    }
+  };
+
+  // Process player planet
+  processObject(playerPlanetDataRaw, userId);
+
+  // Process surrounding NPC objects
+  newObjectsRaw.forEach((raw) => processObject(raw, "SYSTEM"));
+
+  await prisma.spaceObject.createMany({ data: spaceObjectsToCreate });
+  await prisma.planet.createMany({ data: planetsToCreate });
+  await prisma.planetBuilding.createMany({ data: planetBuildingsToCreate });
+  await prisma.planetShip.createMany({ data: planetShipsToCreate });
+
+  console.log(`[Users] Reset defeated player ${userId} with new planet and surroundings`);
 };

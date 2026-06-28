@@ -81,7 +81,7 @@
   },
   "COLONY_SHIP": {
     "name": "Colony Ship",
-    "description": "Allows settling on new planets.",
+    "description": "Massive vessel carrying colonists and military forces. Used to conquer enemy planets and colonize uninhabited worlds.",
     "cost": {
       "titanium": 10000,
       "silicate": 10000,

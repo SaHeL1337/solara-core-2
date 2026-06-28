@@ -8,13 +8,17 @@ datasource db {
 }
 
 model User {
-  id            String   @id
-  flux          Int    @default(500)
-  lastUpdate    DateTime @default(now()) // Used for lazy resource calculation
-  planets       Planet[]
-  fleetMovements FleetMovement[]
+  id              String   @id
+  flux            Int      @default(500)
+  lastUpdate      DateTime @default(now()) // Used for lazy resource calculation
+  displayName     String?
+  playerClass     String?
+  isSetupComplete Boolean  @default(false)
+  isDefeated      Boolean  @default(false)
+  planets         Planet[]
+  fleetMovements  FleetMovement[]
   receivedMessages Message[] @relation("ReceivedMessages")
-  scanReports      ScanReport[]
+  scanReports     ScanReport[]
 }
 
 
@@ -57,6 +61,8 @@ model Planet {
   population  Int @default(0)
   populationCapacity Int @default(0)
   storageCapacity Int @default(10000)
+  sovereignty Int @default(100)
+  sovereigntyUpdatedAt DateTime @default(now())
   
   scanReports     ScanReport[]
 }
@@ -67,6 +73,7 @@ enum MissionType {
   EXPLORE
   SCAN
   SUPPORT
+  CONQUER
 }
 
 enum FleetMovementStatus {
@@ -196,6 +203,7 @@ enum MessageCategory {
   ATTACK
   EXPLORE
   REPORT
+  CONQUEST
 }
 
 model ScanReport {
