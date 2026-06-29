@@ -10,6 +10,7 @@ import statisticsRoutes from "../src/modules/statistics/statistics.routes";
 import adminRoutes from "../src/modules/admin/admin.routes";
 import tagsRoutes from "../src/modules/tags/tags.routes";
 import templatesRoutes from "../src/modules/templates/templates.routes";
+import tradingRoutes from "../src/modules/trading/trading.routes";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/statistics", statisticsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/tags", tagsRoutes);
 app.use("/api/templates", templatesRoutes);
+app.use("/api/trading", tradingRoutes);
 
 
 // Public route

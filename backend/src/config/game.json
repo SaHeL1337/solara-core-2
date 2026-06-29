@@ -34,5 +34,16 @@
   "playerClasses": ["Commander", "Bastion", "Harvester"],
   "asteroidsPerPlayer": 3,
   "blackHolesPerPlayer": 1,
-  "npcPlanetsPerPlayer": 5
+  "npcPlanetsPerPlayer": 5,
+  "trading": {
+    "fluxBaseRatio": {
+      "titanium": 1000,
+      "silicate": 1000,
+      "isotope": 1000
+    },
+    "fluxPriceScaleFactor": 500,
+    "fluxPriceExponent": 1.2,
+    "tradeDurationSeconds": 300,
+    "tradingCapacityFormula": "5000 * level"
+  }
 }

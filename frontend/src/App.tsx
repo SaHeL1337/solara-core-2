@@ -18,6 +18,7 @@ import AdminPanel from "@/pages/game/AdminPanel";
 import Planets from "@/pages/game/Planets";
 import Templates from "@/pages/game/Templates";
 import Tags from "@/pages/game/Tags";
+import Trading from "@/pages/game/Trading";
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/shipyard" element={<Shipyard />} />
           <Route path="/fleet" element={<Fleet />} />
           <Route path="/map" element={<Map />} />
+          <Route path="/trading" element={<Trading />} />
           <Route path="/messages" element={<Messages />} />
           <Route path="/planets" element={<Planets />} />
           <Route path="/templates" element={<Templates />} />

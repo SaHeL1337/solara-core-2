@@ -244,3 +244,21 @@ model PlanetTemplate {
   tagId     String?  @unique
   tag       Tag?     @relation(fields: [tagId], references: [id], onDelete: SetNull)
 }
+
+model FluxTrade {
+  id               String   @id @default(uuid())
+  userId           String
+  planetId         String
+  titaniumSpent    Int
+  silicateSpent    Int
+  isotopeSpent     Int
+  fluxGained       Int
+  multiplier       Float
+  capacityUsed     Int
+  tradeDurationSec Int
+  completesAt      DateTime
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([planetId, completesAt])
+}

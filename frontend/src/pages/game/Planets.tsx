@@ -238,212 +238,268 @@ export default function Planets() {
           <p className="text-sm text-[#64748b]">No planets match current bounds or tag filters.</p>
         </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {planets.map((planet) => {
             const isSelected = selectedPlanet?.id === planet.id;
+            const sovPercent = planet.sovereignty;
             const sovColor =
-              planet.sovereignty > 75
-                ? "bg-emerald-500"
-                : planet.sovereignty > 40
-                  ? "bg-amber-500"
-                  : "bg-red-500";
+              sovPercent > 75
+                ? "from-emerald-500 to-emerald-400"
+                : sovPercent > 40
+                  ? "from-amber-500 to-amber-400"
+                  : "from-red-500 to-red-400";
+            const sovTextColor =
+              sovPercent > 75
+                ? "text-emerald-400"
+                : sovPercent > 40
+                  ? "text-amber-400"
+                  : "text-red-400";
 
             const attachedTemplate = userTemplates.find(
               (t) => t.tagId && planet.tags?.some((pt) => pt.id === t.tagId)
             );
 
+            const titaniumFull = Math.floor(planet.titanium) >= planet.storageCapacity;
+            const silicateFull = Math.floor(planet.silicate) >= planet.storageCapacity;
+            const isotopeFull = Math.floor(planet.isotope) >= planet.storageCapacity;
+
             return (
               <div
                 key={planet.id}
-                className={`relative flex flex-col justify-between bg-[#1a1d24] border p-4 transition-all hover:border-[#3b4252] group ${isSelected
-                  ? "border-[#00E5FF] shadow-[0_0_15px_rgba(0,229,255,0.15)]"
-                  : "border-[#2a2e38]"
+                className={`relative rounded-xl overflow-hidden transition-all duration-300 group ${isSelected
+                  ? "ring-1 ring-[#00E5FF]/60 shadow-[0_0_24px_rgba(0,229,255,0.12)]"
+                  : "ring-1 ring-[#2a2e38]/60 hover:ring-[#3b4252]"
                   }`}
               >
-                <button
-                  onClick={() => selectPlanet(planet.id)}
-                  className="absolute inset-0 z-0 text-left"
-                />
+                {/* Gradient top accent */}
+                <div className={`h-[2px] w-full ${isSelected ? "bg-gradient-to-r from-[#00E5FF] via-[#00E5FF]/60 to-transparent" : "bg-gradient-to-r from-[#2a2e38] via-[#2a2e38]/40 to-transparent"}`} />
 
-                {isSelected && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <Check className="w-4 h-4 text-[#00E5FF]" />
-                  </div>
-                )}
+                <div className="bg-gradient-to-b from-[#1c1f27] to-[#181a21] p-5">
+                  <button
+                    onClick={() => selectPlanet(planet.id)}
+                    className="absolute inset-0 z-0 text-left"
+                  />
 
-                <div className="relative z-10 pointer-events-none">
-                  <div className="mb-3">
-                    <h3 className={`text-sm font-bold truncate ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
-                      {planet.name}
-                    </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      <MapPin className="w-3 h-3 text-[#64748b]" />
-                      <span className="text-[10px] font-mono text-[#64748b]">
-                        {planet.x}, {planet.y}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Attached template recipe banner */}
-                  {attachedTemplate && (
-                    <div className="mb-3 px-2 py-1 bg-[#00E5FF]/5 border border-[#00E5FF]/20 text-[9px] font-bold text-[#00E5FF] uppercase tracking-wider flex items-center justify-between">
-                      <span>Build Recipe:</span>
-                      <span className="text-white truncate max-w-[120px]">{attachedTemplate.name}</span>
-                    </div>
-                  )}
-
-                  <div className="mb-3">
-                    <div className="flex justify-between items-center mb-1">
-                      <div className="flex items-center gap-1">
-                        <Shield className="w-3 h-3 text-[#64748b]" />
-                        <span className="text-[9px] font-bold uppercase tracking-widest text-[#64748b]">
-                          Sovereignty
-                        </span>
+                  {/* Header: Planet name + coordinates */}
+                  <div className="relative z-10 pointer-events-none">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className={`text-base font-bold truncate leading-tight ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
+                          {planet.name}
+                        </h3>
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-[#475569]" />
+                          <span className="text-xs font-mono text-[#64748b] bg-[#0f1115] px-2 py-0.5 rounded-md">
+                            {planet.x}, {planet.y}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-mono text-[#94a3b8]">{planet.sovereignty}/100</span>
+                      {isSelected && (
+                        <div className="w-6 h-6 rounded-full bg-[#00E5FF]/10 flex items-center justify-center shrink-0 ml-3">
+                          <Check className="w-3.5 h-3.5 text-[#00E5FF]" />
+                        </div>
+                      )}
                     </div>
-                    <div className="w-full h-1.5 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${sovColor}`}
-                        style={{ width: `${planet.sovereignty}%` }}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="flex items-center gap-1">
-                      <TitaniumIcon className="w-3 h-3 text-[#00E5FF]" />
-                      <span className={`text-[10px] font-mono ${Math.floor(planet.titanium) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
-                        {formatNumber(Math.floor(planet.titanium))}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <SilicateIcon className="w-3 h-3 text-emerald-400" />
-                      <span className={`text-[10px] font-mono ${Math.floor(planet.silicate) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
-                        {formatNumber(Math.floor(planet.silicate))}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <IsotopeIcon className="w-3 h-3 text-purple-400" />
-                      <span className={`text-[10px] font-mono ${Math.floor(planet.isotope) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
-                        {formatNumber(Math.floor(planet.isotope))}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 pt-2 border-t border-[#1e2028] flex justify-between text-[10px] text-[#64748b]">
-                    <span>Pop: <span className="text-[#94a3b8] font-mono">{formatNumber(planet.population)}/{formatNumber(planet.populationCapacity)}</span></span>
-                    <span>Storage: <span className="text-[#94a3b8] font-mono">{formatNumber(planet.storageCapacity)}</span></span>
-                  </div>
-
-                  {/* Active building constructions */}
-                  {planet.queue && planet.queue.length > 0 && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[#1e2028]/80 space-y-1">
-                      <div className="text-[8px] font-bold uppercase tracking-widest text-[#64748b] mb-1">
-                        Active Construction ({planet.queue.length})
+                    {/* Attached template recipe banner */}
+                    {attachedTemplate && (
+                      <div className="mb-4 px-3 py-2 bg-[#00E5FF]/5 border border-[#00E5FF]/15 rounded-lg text-xs font-semibold text-[#00E5FF] flex items-center justify-between gap-2">
+                        <span className="uppercase tracking-wider text-[#00E5FF]/70 text-[11px]">Build Recipe</span>
+                        <span className="text-white truncate">{attachedTemplate.name}</span>
                       </div>
-                      <div className="space-y-1">
-                        {planet.queue.slice(0, 2).map((q, idx) => {
-                          const label = BUILDING_NAMES[q.buildingType] || q.buildingType;
-                          const isBuilding = q.status === "BUILDING";
-                          return (
+                    )}
+
+                    {/* Sovereignty */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-[#475569]" />
+                          <span className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">
+                            Sovereignty
+                          </span>
+                        </div>
+                        <span className={`text-sm font-bold font-mono ${sovTextColor}`}>{sovPercent}%</span>
+                      </div>
+                      <div className="w-full h-2 bg-[#0d0e12] rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full bg-gradient-to-r ${sovColor} transition-all duration-500`}
+                          style={{ width: `${sovPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resources — vertical stack with mini bars */}
+                    <div className="space-y-2.5 mb-4">
+                      <div className="flex items-center gap-3">
+                        <TitaniumIcon className="w-4 h-4 text-[#00E5FF] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline justify-between mb-0.5">
+                            <span className="text-[11px] font-medium text-[#64748b]">Titanium</span>
+                            <span className={`text-xs font-mono font-bold ${titaniumFull ? "text-red-400 animate-pulse" : "text-[#cbd5e1]"}`}>
+                              {formatNumber(Math.floor(planet.titanium))}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-[#0d0e12] rounded-full overflow-hidden">
                             <div
-                              key={q.id || idx}
-                              className="flex items-center justify-between px-2 py-1 bg-[#111317] border border-[#2a2e38] text-[9px] font-mono"
-                            >
-                              <span className="text-white truncate max-w-[140px]">
-                                {label} <span className="text-[#00E5FF]">{q.targetLevel}</span>
-                              </span>
+                              className={`h-full rounded-full transition-all ${titaniumFull ? "bg-red-500" : "bg-[#00E5FF]"}`}
+                              style={{ width: `${Math.min((planet.titanium / planet.storageCapacity) * 100, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <SilicateIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline justify-between mb-0.5">
+                            <span className="text-[11px] font-medium text-[#64748b]">Silicate</span>
+                            <span className={`text-xs font-mono font-bold ${silicateFull ? "text-red-400 animate-pulse" : "text-[#cbd5e1]"}`}>
+                              {formatNumber(Math.floor(planet.silicate))}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-[#0d0e12] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${silicateFull ? "bg-red-500" : "bg-emerald-400"}`}
+                              style={{ width: `${Math.min((planet.silicate / planet.storageCapacity) * 100, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <IsotopeIcon className="w-4 h-4 text-purple-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline justify-between mb-0.5">
+                            <span className="text-[11px] font-medium text-[#64748b]">Isotope</span>
+                            <span className={`text-xs font-mono font-bold ${isotopeFull ? "text-red-400 animate-pulse" : "text-[#cbd5e1]"}`}>
+                              {formatNumber(Math.floor(planet.isotope))}
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-[#0d0e12] rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${isotopeFull ? "bg-red-500" : "bg-purple-400"}`}
+                              style={{ width: `${Math.min((planet.isotope / planet.storageCapacity) * 100, 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pop + Storage footer */}
+                    <div className="flex items-center justify-between py-2.5 px-3 bg-[#0f1115] rounded-lg text-xs text-[#64748b]">
+                      <span>Pop <span className="text-[#94a3b8] font-mono font-semibold">{formatNumber(planet.population)}<span className="text-[#3b4252] mx-0.5">/</span>{formatNumber(planet.populationCapacity)}</span></span>
+                      <span className="w-px h-3 bg-[#2a2e38]" />
+                      <span>Storage <span className="text-[#94a3b8] font-mono font-semibold">{formatNumber(planet.storageCapacity)}</span></span>
+                    </div>
+
+                    {/* Active building constructions */}
+                    {planet.queue && planet.queue.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-[#1e2028]">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-[#475569] mb-2 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-[#00E5FF] rounded-full animate-pulse" />
+                          Building ({planet.queue.length})
+                        </div>
+                        <div className="space-y-1.5">
+                          {planet.queue.slice(0, 2).map((q, idx) => {
+                            const label = BUILDING_NAMES[q.buildingType] || q.buildingType;
+                            return (
+                              <div
+                                key={q.id || idx}
+                                className="flex items-center justify-between px-3 py-1.5 bg-[#111317] border border-[#2a2e38]/60 rounded-md text-xs font-mono"
+                              >
+                                <span className="text-[#cbd5e1] truncate">
+                                  {label}
+                                </span>
+                                <span className="text-[#00E5FF] font-bold ml-2">Lv {q.targetLevel}</span>
+                              </div>
+                            );
+                          })}
+                          {planet.queue.length > 2 && (
+                            <div className="text-[10px] text-[#475569] text-right font-medium">
+                              +{planet.queue.length - 2} more queued
                             </div>
-                          );
-                        })}
-                        {planet.queue.length > 2 && (
-                          <div className="text-[8px] text-[#64748b] text-right font-medium italic">
-                            + {planet.queue.length - 2} more in queue
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Planet tag list */}
+                  <div className="relative z-10 mt-4 pt-3 border-t border-[#1e2028]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#475569] flex items-center gap-1.5">
+                        <TagIcon className="w-3 h-3" /> Tags
+                      </span>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePlanetForTags(activePlanetForTags === planet.id ? null : planet.id);
+                          }}
+                          className="p-1.5 rounded-md border border-[#2a2e38] bg-[#16181d] text-[#64748b] hover:text-[#00E5FF] hover:border-[#00E5FF]/40 transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+
+                        {activePlanetForTags === planet.id && (
+                          <div className="absolute right-0 bottom-full mb-2 w-52 bg-[#16181d] border border-[#2a2e38] rounded-lg p-3 shadow-2xl z-50 animate-in fade-in zoom-in duration-100">
+                            <div className="flex justify-between items-center pb-2 border-b border-[#2a2e38] mb-2">
+                              <span className="text-[11px] font-bold uppercase text-[#94a3b8]">Assign Tags</span>
+                              <button
+                                onClick={() => setActivePlanetForTags(null)}
+                                className="text-[#64748b] hover:text-white p-0.5"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            {userTags.length === 0 ? (
+                              <div className="text-xs text-center text-[#64748b] py-3">
+                                No tags created yet.
+                              </div>
+                            ) : (
+                              <div className="max-h-36 overflow-y-auto space-y-1">
+                                {userTags.map((tag) => {
+                                  const isAttached = planet.tags?.some((t) => t.id === tag.id) || false;
+                                  return (
+                                    <label
+                                      key={tag.id}
+                                      className="flex items-center gap-2 text-xs text-[#e2e8f0] cursor-pointer hover:bg-[#1a1d24] p-1.5 rounded select-none"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isAttached}
+                                        onChange={() => toggleTagOnPlanet(planet.id, tag, isAttached)}
+                                        className="accent-[#00E5FF] w-3.5 h-3.5"
+                                      />
+                                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                                      <span className="truncate uppercase font-bold tracking-wider">{tag.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Planet tag list */}
-                <div className="relative z-10 mt-3 pt-3 border-t border-[#1e2028] flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#64748b] flex items-center gap-1">
-                      <TagIcon className="w-2.5 h-2.5" /> Planet Tags
-                    </span>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActivePlanetForTags(activePlanetForTags === planet.id ? null : planet.id);
-                        }}
-                        className="p-1 border border-[#2a2e38] bg-[#16181d] text-[#64748b] hover:text-[#00E5FF] hover:border-[#00E5FF]/40 transition-colors"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
-
-                      {activePlanetForTags === planet.id && (
-                        <div className="absolute right-0 bottom-full mb-2 w-48 bg-[#16181d] border border-[#2a2e38] p-3 shadow-xl z-50 animate-in fade-in zoom-in duration-100">
-                          <div className="flex justify-between items-center pb-1.5 border-b border-[#2a2e38] mb-2">
-                            <span className="text-[9px] font-bold uppercase text-[#94a3b8]">Assign Tags</span>
-                            <button
-                              onClick={() => setActivePlanetForTags(null)}
-                              className="text-[#64748b] hover:text-white"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                          {userTags.length === 0 ? (
-                            <div className="text-[9px] text-center text-[#64748b] py-2">
-                              No tags created. Use "Manage Tags" above.
-                            </div>
-                          ) : (
-                            <div className="max-h-32 overflow-y-auto space-y-1">
-                              {userTags.map((tag) => {
-                                const isAttached = planet.tags?.some((t) => t.id === tag.id) || false;
-                                return (
-                                  <label
-                                    key={tag.id}
-                                    className="flex items-center gap-2 text-[10px] text-[#e2e8f0] cursor-pointer hover:bg-[#1a1d24] p-1 select-none"
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isAttached}
-                                      onChange={() => toggleTagOnPlanet(planet.id, tag, isAttached)}
-                                      className="accent-[#00E5FF] w-3 h-3"
-                                    />
-                                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: tag.color }} />
-                                    <span className="truncate uppercase font-bold tracking-wider">{tag.name}</span>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {planet.tags && planet.tags.length > 0 ? (
+                        planet.tags.map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md border"
+                            style={{
+                              color: tag.color,
+                              borderColor: `${tag.color}25`,
+                              backgroundColor: `${tag.color}0a`,
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-[#3b4252] italic">No tags</span>
                       )}
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    {planet.tags && planet.tags.length > 0 ? (
-                      planet.tags.map((tag) => (
-                        <span
-                          key={tag.id}
-                          className="px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest border"
-                          style={{
-                            color: tag.color,
-                            borderColor: `${tag.color}30`,
-                            backgroundColor: `${tag.color}05`,
-                          }}
-                        >
-                          {tag.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[9px] text-[#3b4252] font-medium italic">No tags</span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -452,8 +508,8 @@ export default function Planets() {
         </div>
       ) : (
         /* Planet List mode */
-        <div className="bg-[#1a1d24] border border-[#2a2e38] overflow-hidden">
-          <div className="grid grid-cols-[1fr_100px_120px_1fr_150px_100px] gap-0 text-[9px] font-bold tracking-widest uppercase text-[#64748b] border-b border-[#2a2e38] px-4 py-2">
+        <div className="bg-[#1a1d24] border border-[#2a2e38] rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[1fr_100px_130px_1fr_160px_110px] gap-0 text-[10px] font-bold tracking-widest uppercase text-[#475569] border-b border-[#2a2e38] px-5 py-3">
             <span>Planet</span>
             <span>Position</span>
             <span>Sovereignty</span>
@@ -477,7 +533,7 @@ export default function Planets() {
             return (
               <div
                 key={planet.id}
-                className={`grid grid-cols-[1fr_100px_120px_1fr_150px_100px] gap-0 items-center px-4 py-3 border-b border-[#1e2028] transition-colors relative ${isSelected
+                className={`grid grid-cols-[1fr_100px_130px_1fr_160px_110px] gap-0 items-center px-5 py-3.5 border-b border-[#1e2028] transition-colors relative ${isSelected
                   ? "bg-[#00E5FF]/5 border-l-2 border-l-[#00E5FF]"
                   : "hover:bg-[#16181d] border-l-2 border-l-transparent"
                   }`}
@@ -485,14 +541,14 @@ export default function Planets() {
                 <button onClick={() => selectPlanet(planet.id)} className="absolute inset-0 z-0" />
                 <div className="flex flex-col gap-0.5 min-w-0 relative z-10 pointer-events-none">
                   <div className="flex items-center gap-2">
-                    {isSelected && <Check className="w-3 h-3 text-[#00E5FF] shrink-0" />}
-                    <span className={`text-xs font-bold truncate ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-[#00E5FF] shrink-0" />}
+                    <span className={`text-sm font-bold truncate ${isSelected ? "text-[#00E5FF]" : "text-white"}`}>
                       {planet.name}
                     </span>
                   </div>
                   {planet.queue && planet.queue.length > 0 && (
-                    <div className="text-[8px] text-[#00E5FF] font-mono uppercase tracking-tight truncate flex items-center gap-1 mt-0.5">
-                      <span className="w-1 h-1 bg-[#00E5FF] rounded-full animate-ping shrink-0" />
+                    <div className="text-[10px] text-[#00E5FF] font-mono uppercase tracking-tight truncate flex items-center gap-1.5 mt-0.5">
+                      <span className="w-1.5 h-1.5 bg-[#00E5FF] rounded-full animate-ping shrink-0" />
                       <span>
                         {BUILDING_NAMES[planet.queue[0].buildingType] || planet.queue[0].buildingType} L{planet.queue[0].targetLevel}
                         {planet.queue.length > 1 && ` (+${planet.queue.length - 1})`}
@@ -500,31 +556,31 @@ export default function Planets() {
                     </div>
                   )}
                 </div>
-                <span className="text-[10px] font-mono text-[#94a3b8] relative z-10 pointer-events-none">
+                <span className="text-xs font-mono text-[#94a3b8] relative z-10 pointer-events-none">
                   {planet.x}, {planet.y}
                 </span>
-                <div className="flex items-center gap-2 relative z-10 pointer-events-none">
-                  <div className="w-16 h-1.5 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
-                    <div className={`h-full ${sovColor}`} style={{ width: `${planet.sovereignty}%` }} />
+                <div className="flex items-center gap-2.5 relative z-10 pointer-events-none">
+                  <div className="w-16 h-2 bg-[#0a0b0e] rounded-full border border-[#2a2e38] overflow-hidden">
+                    <div className={`h-full rounded-full ${sovColor}`} style={{ width: `${planet.sovereignty}%` }} />
                   </div>
-                  <span className="text-[10px] font-mono text-[#64748b]">{planet.sovereignty}</span>
+                  <span className="text-xs font-mono text-[#64748b]">{planet.sovereignty}</span>
                 </div>
-                <div className="flex items-center gap-3 relative z-10 pointer-events-none">
-                  <div className="flex items-center gap-1">
-                    <TitaniumIcon className="w-3 h-3 text-[#00E5FF]" />
-                    <span className={`text-[10px] font-mono ${Math.floor(planet.titanium) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                <div className="flex items-center gap-3.5 relative z-10 pointer-events-none">
+                  <div className="flex items-center gap-1.5">
+                    <TitaniumIcon className="w-3.5 h-3.5 text-[#00E5FF]" />
+                    <span className={`text-xs font-mono ${Math.floor(planet.titanium) >= planet.storageCapacity ? "text-red-400 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                       {formatNumber(Math.floor(planet.titanium))}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <SilicateIcon className="w-3 h-3 text-emerald-400" />
-                    <span className={`text-[10px] font-mono ${Math.floor(planet.silicate) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                  <div className="flex items-center gap-1.5">
+                    <SilicateIcon className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className={`text-xs font-mono ${Math.floor(planet.silicate) >= planet.storageCapacity ? "text-red-400 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                       {formatNumber(Math.floor(planet.silicate))}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <IsotopeIcon className="w-3 h-3 text-purple-400" />
-                    <span className={`text-[10px] font-mono ${Math.floor(planet.isotope) >= planet.storageCapacity ? "text-red-500 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
+                  <div className="flex items-center gap-1.5">
+                    <IsotopeIcon className="w-3.5 h-3.5 text-purple-400" />
+                    <span className={`text-xs font-mono ${Math.floor(planet.isotope) >= planet.storageCapacity ? "text-red-400 font-extrabold animate-pulse" : "text-[#94a3b8]"}`}>
                       {formatNumber(Math.floor(planet.isotope))}
                     </span>
                   </div>
@@ -536,11 +592,11 @@ export default function Planets() {
                     {planet.tags?.map((tag) => (
                       <span
                         key={tag.id}
-                        className="px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-widest border"
+                        className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded border"
                         style={{
                           color: tag.color,
-                          borderColor: `${tag.color}30`,
-                          backgroundColor: `${tag.color}05`,
+                          borderColor: `${tag.color}25`,
+                          backgroundColor: `${tag.color}0a`,
                         }}
                       >
                         {tag.name}
@@ -548,13 +604,13 @@ export default function Planets() {
                     ))}
                   </div>
                   {attachedTemplate && (
-                    <div className="text-[8px] font-mono text-[#00E5FF] uppercase font-bold tracking-tight">
+                    <div className="text-[10px] font-mono text-[#00E5FF] uppercase font-bold tracking-tight">
                       ⚙ {attachedTemplate.name}
                     </div>
                   )}
                 </div>
 
-                <span className="text-[10px] font-mono text-[#94a3b8] text-right relative z-10 pointer-events-none">
+                <span className="text-xs font-mono text-[#94a3b8] text-right relative z-10 pointer-events-none">
                   {formatNumber(planet.population)}/{formatNumber(planet.populationCapacity)}
                 </span>
               </div>
