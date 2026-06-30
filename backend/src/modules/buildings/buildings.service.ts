@@ -9,6 +9,7 @@ import { ResourceService } from "../resources/resourc.service";
 
 export const calculateAvailableBuildings = async (
   planetId: string,
+  userId: string,
   currentBuildings?: any[],
   queue?: any[],
 ): Promise<Record<string, CalculatedBuildingInfo>> => {
@@ -39,7 +40,13 @@ export const calculateAvailableBuildings = async (
     {} as Record<string, number>,
   );
 
-  return getCalcAvailableBuildings(currentLevelsMap, inQueueCountMap);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { researchedNodes: true }
+  });
+  const researchedNodes = user?.researchedNodes.map(r => r.nodeId) || [];
+
+  return getCalcAvailableBuildings(currentLevelsMap, inQueueCountMap, researchedNodes);
 };
 
 export const getBuildings = async (userId: string, planetId: string) => {
@@ -69,6 +76,7 @@ export const getBuildings = async (userId: string, planetId: string) => {
   // Combine available buildings with current level state using config service
   const available = await calculateAvailableBuildings(
     planetId,
+    userId,
     currentBuildings,
     queue,
   );
@@ -108,6 +116,16 @@ export const addToQueue = async (
 
   // 3. Game Math: Calculate costs and time (Scales with level) using config service
   const calcConfig = getBuildingConfig(buildingType, currentLevel, targetLevel);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { researchedNodes: true }
+  });
+  const researchedNodes = user?.researchedNodes.map(r => r.nodeId) || [];
+  const missingTech = calcConfig.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
+  if (missingTech.length > 0) {
+    throw new Error(`Missing required tech: ${missingTech.join(", ")}`);
+  }
 
   const costFlux = calcConfig.cost.flux;
   const costTitanium = calcConfig.cost.titanium;

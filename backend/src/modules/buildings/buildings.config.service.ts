@@ -19,6 +19,8 @@ export interface CalculatedBuildingInfo {
   production: number;
   productionIncrease: number;
   buildTimeInSeconds: number;
+  requiredTech?: string[];
+  missingTech?: string[];
 }
 
 export const evaluateFormula = (
@@ -76,12 +78,14 @@ export const getBuildingConfig = (
     buildTimeInSeconds: config.buildTimeInSeconds
       ? evaluateFormula(config.buildTimeInSeconds, targetLevel)
       : Math.max(60 * targetLevel, 60),
+    requiredTech: config.requiredTech,
   };
 };
 
 export const getCalcAvailableBuildings = (
   currentLevelsMap: Record<string, number>,
   inQueueCountMap: Record<string, number>,
+  researchedNodes: string[] = [],
 ): Record<string, CalculatedBuildingInfo> => {
   const buildingsMap: Record<string, CalculatedBuildingInfo> = {};
 
@@ -90,10 +94,14 @@ export const getCalcAvailableBuildings = (
     const itemsInQueue = inQueueCountMap[type] || 0;
     const targetLevel = currentLevel + itemsInQueue + 1;
 
+    const configInfo = getBuildingConfig(type, currentLevel, targetLevel);
+    const missingTech = configInfo.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
+
     buildingsMap[type] = {
-      ...getBuildingConfig(type, currentLevel, targetLevel),
+      ...configInfo,
       level: currentLevel,
       targetLevel,
+      missingTech,
     };
   }
 

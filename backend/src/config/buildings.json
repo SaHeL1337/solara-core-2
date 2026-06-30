@@ -61,7 +61,8 @@
     },
     "maxLevel": 25,
     "production": 0,
-    "buildTimeInSeconds": "20 * level"
+    "buildTimeInSeconds": "20 * level",
+    "requiredTech": ["PRODUCTION_1"]
   },
   "HOUSING_BLOCK": {
     "name": "Housing Block",

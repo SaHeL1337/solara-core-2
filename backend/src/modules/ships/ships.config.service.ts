@@ -14,6 +14,7 @@ export type ShipConfigItem = {
   buildTimeInSeconds: string;
   distancePerSecond: number;
   capacity: number;
+  requiredTech?: string[];
 };
 
 export type CalculatedShipInfo = {
@@ -30,6 +31,8 @@ export type CalculatedShipInfo = {
   distancePerSecond: number;
   capacity: number;
   meetsRequirements: boolean;
+  requiredTech?: string[];
+  missingTech?: string[];
 };
 
 const shipConfig: Record<string, ShipConfigItem> = shipConfigJson as Record<
@@ -75,11 +78,13 @@ export const getShipConfig = (
     distancePerSecond: config.distancePerSecond,
     capacity: config.capacity,
     meetsRequirements: true, // evaluated by caller
+    requiredTech: config.requiredTech,
   };
 };
 
 export const getCalcAvailableShips = (
   shipyardLevel: number,
+  researchedNodes: string[] = [],
 ): Record<string, CalculatedShipInfo> => {
   const availableShips: Record<string, CalculatedShipInfo> = {};
 
@@ -95,7 +100,13 @@ export const getCalcAvailableShips = (
       }
     }
 
+    const missingTech = config.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
+    if (missingTech.length > 0) {
+      meetsRequirements = false;
+    }
+
     config.meetsRequirements = meetsRequirements;
+    config.missingTech = missingTech;
     availableShips[shipType] = config;
   }
 

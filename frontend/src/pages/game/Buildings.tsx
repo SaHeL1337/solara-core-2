@@ -14,6 +14,7 @@ type BuildingConfig = {
   maxLevel: number;
   productionIncrease: number;
   buildTimeInSeconds: number;
+  missingTech?: string[];
 };
 
 type APIBuildingMapping = Record<string, BuildingConfig>;
@@ -326,6 +327,8 @@ export default function Buildings() {
             });
 
             const isAffordable = Object.keys(missingResources).length === 0;
+            const missingTech = config.missingTech || [];
+            const hasMissingTech = missingTech.length > 0;
 
             return (
               <div
@@ -355,6 +358,13 @@ export default function Buildings() {
                     </div>
                   </div>
                 </div>
+
+                {hasMissingTech && (
+                  <div className="text-[10px] text-orange-400 mb-4 bg-orange-950/30 p-2 font-mono uppercase tracking-widest border border-orange-900">
+                    <span className="block mb-1 font-bold">Requirements:</span>
+                    {missingTech.map(t => `TECH: ${t.replace(/_/g, " ")}`).join(", ")}
+                  </div>
+                )}
 
                 {/* Costs & Time Panel */}
                 <div className="flex flex-wrap gap-1 mb-1">
@@ -408,22 +418,24 @@ export default function Buildings() {
 
                 <div className="mt-auto">
                   <button
-                    disabled={!isAffordable}
+                    disabled={!isAffordable || hasMissingTech}
                     style={{ borderRadius: 0 }}
                     className={`w-full py-3 text-[8px] tracking-widest transition-all ${
                       status !== null
                         ? "bg-[#16181d] text-[#00E5FF] borderborder-[#00E5FF] cursor-not-allowed"
-                        : isAffordable
-                          ? "bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]"
-                          : "bg-[#16181d] text-[#64748b] border border-[#00E5FF] cursor-not-allowed opacity-80"
+                        : (!isAffordable || hasMissingTech)
+                          ? "bg-[#16181d] text-[#64748b] border border-[#00E5FF] cursor-not-allowed opacity-80"
+                          : "bg-[rgba(0,229,255,0.1)] text-[#00E5FF] border border-[#00E5FF] hover:bg-[#00E5FF] hover:text-black hover:shadow-[0_0_15px_rgba(0,229,255,0.4)]"
                     }`}
                     onClick={() => handleUpgrade(type)}
                   >
-                    {isAffordable
-                      ? "Upgrade"
-                      : timeUntilAffordable === Infinity
-                        ? "INSUFFICIENT RESOURCES"
-                        : `${formatTime(timeUntilAffordable)}`}
+                    {hasMissingTech
+                      ? "MISSING RESEARCH"
+                      : isAffordable
+                        ? "Upgrade"
+                        : timeUntilAffordable === Infinity
+                          ? "INSUFFICIENT RESOURCES"
+                          : `${formatTime(timeUntilAffordable)}`}
                   </button>
                 </div>
               </div>

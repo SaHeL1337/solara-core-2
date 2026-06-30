@@ -10,6 +10,7 @@ type ShipConfig = {
   requirements: Record<string, number>;
   buildTimeInSeconds: number;
   meetsRequirements: boolean;
+  missingTech?: string[];
 };
 
 type ShipListProps = {
@@ -101,11 +102,12 @@ export default function ShipList({
               </div>
 
               {!meetsReqs && (
-                <div className="text-[10px] text-red-400 mb-4 bg-red-950/30 p-2 font-mono uppercase tracking-widest border border-red-900">
+                <div className="text-[10px] text-orange-400 mb-4 bg-orange-950/30 p-2 font-mono uppercase tracking-widest border border-orange-900">
                   <span className="block mb-1 font-bold">Requirements:</span>
-                  {Object.entries(config.requirements)
-                    .map(([reqType, reqLvl]) => `${reqType} LV ${reqLvl}`)
-                    .join(", ")}
+                  {[
+                    ...Object.entries(config.requirements).map(([reqType, reqLvl]) => `${reqType} LV ${reqLvl}`),
+                    ...(config.missingTech || []).map(t => `TECH: ${t.replace(/_/g, " ")}`)
+                  ].join(", ")}
                 </div>
               )}
 

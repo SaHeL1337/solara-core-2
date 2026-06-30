@@ -34,6 +34,43 @@ export class JobService {
     }
   }
 
+  async processCompletedResearch() {
+    try {
+      const completedQueues = await prisma.researchQueue.findMany({
+        where: {
+          status: QueueStatus.BUILDING,
+          finishedAt: {
+            lte: new Date(),
+          },
+        },
+      });
+
+      for (const queueItem of completedQueues) {
+        await prisma.$transaction(async (tx: any) => {
+          const item = await tx.researchQueue.findUnique({ where: { id: queueItem.id } });
+          if (!item || item.status !== QueueStatus.BUILDING) return;
+
+          await tx.researchedNode.create({
+            data: {
+              userId: item.userId,
+              nodeId: item.nodeId,
+              level: 1,
+            },
+          });
+
+          await tx.researchQueue.update({
+            where: { id: queueItem.id },
+            data: { status: QueueStatus.COMPLETED },
+          });
+
+          await tx.researchQueue.delete({ where: { id: queueItem.id } });
+        });
+      }
+    } catch (error) {
+      console.error("Error processing completed research:", error);
+    }
+  }
+
   async processCompletedShips() {
     try {
       // For ships, we process sequentially, one ship at a time based on durationSec.

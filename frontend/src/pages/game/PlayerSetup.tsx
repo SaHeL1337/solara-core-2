@@ -3,7 +3,7 @@ import { Rocket, Swords, ChevronRight, Sparkles, Coins, Shield } from "lucide-re
 import api from "@/lib/api";
 import { useGame } from "@/context/GameContext";
 
-const CLASSES = [
+export const CLASSES = [
   {
     id: "Commander",
     name: "Commander",
@@ -14,6 +14,7 @@ const CLASSES = [
     glowColor: "shadow-[0_0_30px_rgba(239,68,68,0.3)]",
     description: "Born for conquest. Commanders are aggressive expansionists who build massive amounts of ships.",
     traits: ["Aggressive", "Tactical", "High intensity"],
+    benefits: ["+10% Ship Damage", "+5% Build Speed"],
   },
   {
     id: "Bastion",
@@ -25,6 +26,7 @@ const CLASSES = [
     glowColor: "shadow-[0_0_30px_rgba(245,158,11,0.3)]",
     description: "Building powerful defensive ships to protect and expand your empire.",
     traits: ["Defensive", "Beginner friendly", "Low intensity"],
+    benefits: ["+20% Defenses", "-10% Ship Cost"],
   },
   {
     id: "Harvester",
@@ -36,6 +38,7 @@ const CLASSES = [
     glowColor: "shadow-[0_0_30px_rgba(0,229,255,0.3)]",
     description: "Harvesters are traders and production specialists. Most production.",
     traits: ["More production", "Beginner friendly", "Trader"],
+    benefits: ["+15% Resource Production", "+20% Storage Capacity"],
   },
 ];
 
@@ -199,7 +202,7 @@ export default function PlayerSetup() {
                         <p className="text-xs text-[#94a3b8] mb-3 leading-relaxed">
                           {cls.description}
                         </p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 mb-3">
                           {cls.traits.map((trait) => (
                             <span
                               key={trait}
@@ -214,6 +217,18 @@ export default function PlayerSetup() {
                             </span>
                           ))}
                         </div>
+                        {isSelected && (
+                          <div className="mt-3 pt-3 border-t border-[#2a2e38] animate-in fade-in">
+                            <h4 className="text-[10px] font-bold tracking-widest uppercase text-white mb-2">Core Benefits</h4>
+                            <div className="flex flex-col gap-1">
+                              {cls.benefits.map((benefit, i) => (
+                                <div key={i} className="text-xs font-mono" style={{ color: cls.color }}>
+                                  + {benefit}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </button>

@@ -11,6 +11,7 @@ import adminRoutes from "../src/modules/admin/admin.routes";
 import tagsRoutes from "../src/modules/tags/tags.routes";
 import templatesRoutes from "../src/modules/templates/templates.routes";
 import tradingRoutes from "../src/modules/trading/trading.routes";
+import techtreeRoutes from "../src/modules/techtree/techtree.routes";
 
 const app = express();
 
@@ -34,7 +35,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/tags", tagsRoutes);
 app.use("/api/templates", templatesRoutes);
 app.use("/api/trading", tradingRoutes);
-
+app.use("/api/techtree", techtreeRoutes);
 
 // Public route
 app.get("/api/health", (req, res) => {

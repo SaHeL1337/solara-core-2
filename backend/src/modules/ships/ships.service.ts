@@ -32,7 +32,13 @@ export const getShips = async (userId: string, planetId: string) => {
 
   await ResourceService.sync(planetId);
 
-  const available = getCalcAvailableShips(shipyardLevel);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { researchedNodes: true }
+  });
+  const researchedNodes = user?.researchedNodes.map(r => r.nodeId) || [];
+
+  const available = getCalcAvailableShips(shipyardLevel, researchedNodes);
 
   return {
     available,
@@ -58,6 +64,16 @@ export const queueShips = async (
   const shipyardLevel = shipyard?.level || 0;
 
   const config = getShipConfig(shipType, shipyardLevel);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { researchedNodes: true }
+  });
+  const researchedNodes = user?.researchedNodes.map(r => r.nodeId) || [];
+  const missingTech = config.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
+  if (missingTech.length > 0) {
+    throw new Error(`Missing required tech: ${missingTech.join(", ")}`);
+  }
 
   // Requirement check
   let meetsRequirements = true;

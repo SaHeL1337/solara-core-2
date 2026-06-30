@@ -18,6 +18,7 @@ import AdminPanel from "@/pages/game/AdminPanel";
 import Planets from "@/pages/game/Planets";
 import Templates from "@/pages/game/Templates";
 import Tags from "@/pages/game/Tags";
+import Techtree from "@/pages/game/Techtree";
 import Trading from "@/pages/game/Trading";
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/templates" element={<Templates />} />
           <Route path="/templates/new" element={<Templates />} />
           <Route path="/templates/edit/:id" element={<Templates />} />
+          <Route path="/techtree" element={<Techtree />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/admin" element={<AdminPanel />} />
           {/* If they try to go to /game, redirect to /dashboard */}

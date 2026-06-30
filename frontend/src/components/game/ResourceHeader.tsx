@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import api from "@/lib/api";
 import { formatNumber, formatTime } from "@/lib/utils";
 
-import { Bell, Settings, User } from "lucide-react";
+import { Bell, Settings, User, Swords, Shield, Coins } from "lucide-react";
 import {
   TitaniumIcon,
   SilicateIcon,
@@ -243,6 +243,16 @@ export default function ResourceHeader() {
 
       {/* Right side icons */}
       <div className="flex-1 flex justify-end items-center gap-6 text-[#94a3b8]">
+        {user?.playerClass && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1a1d24] border border-[#2a2e38] rounded-sm group cursor-help relative">
+            {user.playerClass === "Commander" && <Swords className="size-4 text-red-400" />}
+            {user.playerClass === "Bastion" && <Shield className="size-4 text-amber-400" />}
+            {user.playerClass === "Harvester" && <Coins className="size-4 text-cyan-400" />}
+            <span className="text-[10px] font-bold tracking-widest uppercase text-white">
+              {user.playerClass}
+            </span>
+          </div>
+        )}
         <Link
           to="/messages"
           className="hover:text-[#00E5FF] transition-colors relative"

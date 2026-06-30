@@ -21,6 +21,8 @@ model User {
   scanReports     ScanReport[]
   tags            Tag[]
   templates       PlanetTemplate[]
+  researchedNodes ResearchedNode[]
+  researchQueue   ResearchQueue[]
 }
 
 
@@ -261,4 +263,26 @@ model FluxTrade {
 
   @@index([createdAt])
   @@index([planetId, completesAt])
+}
+
+model ResearchedNode {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  nodeId    String
+  level     Int      @default(1)
+
+  @@unique([userId, nodeId])
+}
+
+model ResearchQueue {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  nodeId       String
+  status       QueueStatus @default(PENDING)
+  costFlux     Int
+  durationSec  Int
+  startedAt    DateTime?
+  finishedAt   DateTime
 }

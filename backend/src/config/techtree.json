@@ -1,0 +1,52 @@
+{
+  "PRODUCTION_1": {
+    "name": "Basic Production",
+    "description": "Increases overall resource production by 1%.",
+    "benefits": "Permanent +1% to all resource production.",
+    "costFlux": 50,
+    "buildTimeInSeconds": 60,
+    "requirements": [],
+    "classes": [],
+    "icon": "Settings"
+  },
+  "PRODUCTION_2": {
+    "name": "Advanced Production",
+    "description": "Increases overall resource production by another 2%.",
+    "benefits": "Permanent +2% to all resource production.",
+    "costFlux": 150,
+    "buildTimeInSeconds": 180,
+    "requirements": ["PRODUCTION_1"],
+    "classes": [],
+    "icon": "Settings"
+  },
+  "HARVESTER_PROD": {
+    "name": "Harvester Specialization",
+    "description": "Exclusive to Harvesters. Massively boosts resource extraction efficiency by 5%.",
+    "benefits": "Permanent +6% to all resource production.",
+    "costFlux": 500,
+    "buildTimeInSeconds": 600,
+    "requirements": ["PRODUCTION_2"],
+    "classes": ["Harvester"],
+    "icon": "Coins"
+  },
+  "BASTION_SHIELD_1": {
+    "name": "Bastion Shielding",
+    "description": "Exclusive to Bastions. Unlocks the heavy defender class ships.",
+    "benefits": "Unlocks Heavy Defender ship type.",
+    "costFlux": 300,
+    "buildTimeInSeconds": 300,
+    "requirements": ["PRODUCTION_1"],
+    "classes": ["Bastion"],
+    "icon": "Shield"
+  },
+  "COMMANDER_ATTACK_1": {
+    "name": "Commander Offense",
+    "description": "Exclusive to Commanders. Unlocks the heavy cruiser class ships.",
+    "benefits": "Unlocks Heavy Cruiser ship type.",
+    "costFlux": 300,
+    "buildTimeInSeconds": 300,
+    "requirements": ["PRODUCTION_1"],
+    "classes": ["Commander"],
+    "icon": "Swords"
+  }
+}

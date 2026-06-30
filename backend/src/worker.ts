@@ -19,6 +19,12 @@ async function startWorker() {
     }
 
     try {
+      await jobService.processCompletedResearch();
+    } catch (error) {
+      console.error("Worker error processing research:", error);
+    }
+
+    try {
       await jobService.processFleetMovements();
     } catch (error) {
       console.error("Worker error processing fleet movements:", error);
