@@ -49,6 +49,7 @@ export const createUser = async (id: string) => {
   const planetsToCreate: any[] = [];
   const planetBuildingsToCreate: any[] = [];
   const planetShipsToCreate: any[] = [];
+  const wormholesToCreate: any[] = [];
 
   // Function to process a raw object (from generator) into database-ready chunks
   const processObject = (raw: any, ownerId: string) => {
@@ -92,6 +93,12 @@ export const createUser = async (id: string) => {
           });
         });
       }
+    } else if (raw.type === SpaceObjectType.WORMHOLE) {
+      wormholesToCreate.push({
+        id: objectId,
+        threatLevel: 1,
+        isClosed: false,
+      });
     }
   };
 
@@ -113,6 +120,11 @@ export const createUser = async (id: string) => {
 
   console.log(`Creating ${planetShipsToCreate.length} ships...`);
   await prisma.planetShip.createMany({ data: planetShipsToCreate });
+
+  if (wormholesToCreate.length > 0) {
+    console.log(`Creating ${wormholesToCreate.length} wormholes...`);
+    await prisma.wormhole.createMany({ data: wormholesToCreate });
+  }
 
   return user;
 };
@@ -171,8 +183,6 @@ export const getUserState = async (userId: string) => {
       silicate: newSilicate,
       isotope: newIsotope,
       production: productionRates,
-      sovereignty: planet.sovereignty,
-      sovereigntyUpdatedAt: planet.sovereigntyUpdatedAt,
       tags: tags || [],
       queue: queue || [],
     };
@@ -259,6 +269,7 @@ export const resetDefeatedPlayer = async (userId: string) => {
   const planetsToCreate: any[] = [];
   const planetBuildingsToCreate: any[] = [];
   const planetShipsToCreate: any[] = [];
+  const wormholesToCreate: any[] = [];
 
   const processObject = (raw: any, ownerId: string) => {
     const objectId = randomUUID();
@@ -280,7 +291,6 @@ export const resetDefeatedPlayer = async (userId: string) => {
         population: 500,
         populationCapacity: 1000,
         storageCapacity: 10000,
-        sovereignty: 100,
       });
 
       if (raw.buildings) {
@@ -302,6 +312,12 @@ export const resetDefeatedPlayer = async (userId: string) => {
           });
         });
       }
+    } else if (raw.type === SpaceObjectType.WORMHOLE) {
+      wormholesToCreate.push({
+        id: objectId,
+        threatLevel: 1,
+        isClosed: false,
+      });
     }
   };
 
@@ -315,6 +331,10 @@ export const resetDefeatedPlayer = async (userId: string) => {
   await prisma.planet.createMany({ data: planetsToCreate });
   await prisma.planetBuilding.createMany({ data: planetBuildingsToCreate });
   await prisma.planetShip.createMany({ data: planetShipsToCreate });
+
+  if (wormholesToCreate.length > 0) {
+    await prisma.wormhole.createMany({ data: wormholesToCreate });
+  }
 
   console.log(`[Users] Reset defeated player ${userId} with new planet and surroundings`);
 };

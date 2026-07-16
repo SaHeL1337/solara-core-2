@@ -145,12 +145,14 @@ export const generateMapObjects = (
     }
   }
 
+  const wormholesPerPlayer = (gameConfig as any).wormholesPerPlayer || 5;
+
   const targets = {
     PLANET:
       Math.floor(
         generateMapObjectsConfig.totalObjects *
           generateMapObjectsConfig.planetRatio,
-      ) - 1, // -1 for player planet
+      ) - 1 - wormholesPerPlayer, // -1 for player planet, minus wormholes taken from planet pool
     ASTEROID: Math.floor(
       generateMapObjectsConfig.totalObjects *
         generateMapObjectsConfig.asteroidRatio,
@@ -159,6 +161,7 @@ export const generateMapObjects = (
       generateMapObjectsConfig.totalObjects *
         generateMapObjectsConfig.blackHoleRatio,
     ),
+    WORMHOLE: wormholesPerPlayer,
   };
 
   // Create a pool of types to sample from
@@ -169,6 +172,8 @@ export const generateMapObjects = (
     typePool.push(SpaceObjectType.ASTEROID);
   for (let i = 0; i < targets.BLACK_HOLE; i++)
     typePool.push(SpaceObjectType.BLACK_HOLE);
+  for (let i = 0; i < targets.WORMHOLE; i++)
+    typePool.push(SpaceObjectType.WORMHOLE);
 
   // Shuffle type pool
   for (let i = typePool.length - 1; i > 0; i--) {
@@ -234,6 +239,8 @@ export const generateMapObjects = (
           });
         } else if (objType === SpaceObjectType.ASTEROID) {
           name = "Asteroid Field";
+        } else if (objType === SpaceObjectType.WORMHOLE) {
+          name = "Wormhole";
         } else {
           name = "Black Hole";
         }

@@ -115,5 +115,18 @@
     "maxLevel": 40,
     "production": 0,
     "buildTimeInSeconds": "10 * level"
+  },
+  "PLANETARY_DEFENSE": {
+    "name": "Planetary Defense",
+    "description": "Orbital defense platform. Activate during a siege to fire on enemy fleets in orbit, destroying population worth of ships.",
+    "cost": {
+      "titanium": "500 * 1.5 ^ (level - 1)",
+      "silicate": "500 * 1.5 ^ (level - 1)",
+      "isotope": "200 * 1.5 ^ (level - 1)",
+      "population": "10 + level * 2"
+    },
+    "maxLevel": 20,
+    "production": "level * 10",
+    "buildTimeInSeconds": "120 * level"
   }
 }

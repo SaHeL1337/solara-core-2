@@ -23,6 +23,10 @@ export const getObjectsInBounds = async (
           },
         },
       },
+      wormhole: true,
+      conquest: {
+        where: { isActive: true },
+      },
     },
   });
 
@@ -41,6 +45,10 @@ export const getTargetInfo = async (
         include: {
           owner: true,
         },
+      },
+      wormhole: true,
+      conquest: {
+        where: { isActive: true },
       },
     },
   });

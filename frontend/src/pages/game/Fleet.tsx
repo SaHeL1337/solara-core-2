@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
 import api from "@/lib/api";
 import { formatNumber } from "@/lib/utils";
-import { Target, Pickaxe, Map as MapIcon, Send, Crown } from "lucide-react";
+import { Target, Pickaxe, Map as MapIcon, Send, Crown, Shield } from "lucide-react";
 
 type SpaceObjectTarget = {
   id: string;
@@ -30,7 +30,7 @@ export default function Fleet() {
   const [isFetchingTarget, setIsFetchingTarget] = useState(false);
   const [targetError, setTargetError] = useState<string | null>(null);
 
-  const [missionType, setMissionType] = useState<"ATTACK" | "MINE" | "EXPLORE" | "CONQUER" | null>(null);
+  const [missionType, setMissionType] = useState<"ATTACK" | "MINE" | "EXPLORE" | "CONQUER" | "HOLD" | null>(null);
 
   const [availableShips, setAvailableShips] = useState<Record<string, any>>({});
   const [currentShips, setCurrentShips] = useState<ShipInventory[]>([]);
@@ -51,6 +51,7 @@ export default function Fleet() {
     if (action === "ATTACK") setMissionType("ATTACK");
     if (action === "EXPLORE") setMissionType("EXPLORE");
     if (action === "CONQUER") setMissionType("CONQUER");
+    if (action === "HOLD") setMissionType("HOLD");
   }, [searchParams]);
 
   const fetchTarget = useCallback(async () => {
@@ -209,14 +210,14 @@ export default function Fleet() {
         <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-3">
           2. Mission Type
         </h2>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <button
             className={`py-3 flex flex-col items-center justify-center gap-1 border transition-all ${
               missionType === 'ATTACK'
                 ? 'bg-red-500/10 border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.2)]'
                 : 'bg-[#16181d] border-[#2a2e38] text-[#94a3b8] hover:border-red-500/50 hover:text-red-400'
             }`}
-            disabled={targetInfo?.type !== 'planet'}
+            disabled={targetInfo?.type !== 'planet' && targetInfo?.type !== 'wormhole'}
             onClick={() => setMissionType('ATTACK')}
           >
             <Target className="w-5 h-5" />
@@ -252,11 +253,23 @@ export default function Fleet() {
                 ? 'bg-amber-500/10 border-amber-500 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                 : 'bg-[#16181d] border-[#2a2e38] text-[#94a3b8] hover:border-amber-500/50 hover:text-amber-400'
             }`}
-            disabled={targetInfo?.type !== 'planet' || (targetInfo?.owner === (selectedPlanet as any)?.ownerId && targetInfo?.owner !== undefined)}
+            disabled={(targetInfo?.type !== 'planet' && targetInfo?.type !== 'wormhole') || (targetInfo?.owner === (selectedPlanet as any)?.ownerId && targetInfo?.owner !== undefined)}
             onClick={() => setMissionType('CONQUER')}
           >
             <Crown className="w-5 h-5" />
             <span className="text-[10px] font-bold tracking-widest uppercase">Conquer</span>
+          </button>
+          <button
+            className={`py-3 flex flex-col items-center justify-center gap-1 border transition-all ${
+              missionType === 'HOLD'
+                ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                : 'bg-[#16181d] border-[#2a2e38] text-[#94a3b8] hover:border-emerald-500/50 hover:text-emerald-400'
+            }`}
+            disabled={targetInfo?.type !== 'planet' && targetInfo?.type !== 'wormhole'}
+            onClick={() => setMissionType('HOLD')}
+          >
+            <Shield className="w-5 h-5" />
+            <span className="text-[10px] font-bold tracking-widest uppercase">Hold</span>
           </button>
         </div>
       </div>

@@ -109,7 +109,12 @@ export const deleteUser = async (userId: string) => {
       await tx.message.deleteMany({ where: { recipientId: userId } });
     }
 
-    // 8. Delete the user record
+    // 8. Delete user research and conquests
+    await tx.researchedNode.deleteMany({ where: { userId } });
+    await tx.researchQueue.deleteMany({ where: { userId } });
+    await tx.conquest.deleteMany({ where: { initiatorId: userId } });
+
+    // 9. Delete the user record
     await tx.user.delete({ where: { id: userId } });
   });
 

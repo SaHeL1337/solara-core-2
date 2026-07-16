@@ -20,6 +20,7 @@ import Templates from "@/pages/game/Templates";
 import Tags from "@/pages/game/Tags";
 import Techtree from "@/pages/game/Techtree";
 import Trading from "@/pages/game/Trading";
+import ConquestOverview from "@/pages/game/ConquestOverview";
 
 export default function App() {
   return (
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/techtree" element={<Techtree />} />
           <Route path="/tags" element={<Tags />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/conquest/:spaceObjectId" element={<ConquestOverview />} />
           {/* If they try to go to /game, redirect to /dashboard */}
           <Route path="/game" element={<Navigate to="/dashboard" replace />} />
         </Route>

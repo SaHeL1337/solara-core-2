@@ -41,10 +41,15 @@ export interface Planet {
   population: number;
   populationCapacity: number;
   storageCapacity: number;
-  sovereignty: number;
-  sovereigntyUpdatedAt: string;
   tags: Tag[];
   queue?: any[];
+  conquest?: {
+    isActive: boolean;
+    progress: number;
+    conquestPoints: number;
+    conquestPointsRequired: number;
+    initiatorId: string;
+  };
 }
 
 export interface UserState {

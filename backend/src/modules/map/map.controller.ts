@@ -35,6 +35,9 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
         case SpaceObjectType.BLACK_HOLE:
           mappedType = "anomaly";
           break;
+        case SpaceObjectType.WORMHOLE:
+          mappedType = "wormhole";
+          break;
       }
 
       let scanStatus = undefined;
@@ -46,6 +49,24 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
           scanStatus = "unscanned";
         }
       }
+
+      // Include conquest data if active
+      const conquest = obj.conquest;
+      const conquestData = conquest ? {
+        isActive: conquest.isActive,
+        progress: conquest.conquestPointsRequired > 0
+          ? Math.min(100, Math.round((conquest.conquestPoints / conquest.conquestPointsRequired) * 100))
+          : 0,
+        conquestPoints: conquest.conquestPoints,
+        conquestPointsRequired: conquest.conquestPointsRequired,
+        initiatorId: conquest.initiatorId,
+      } : undefined;
+
+      // Include wormhole data
+      const wormholeData = obj.wormhole ? {
+        threatLevel: obj.wormhole.threatLevel,
+        isClosed: obj.wormhole.isClosed,
+      } : undefined;
 
       return {
         id: obj.id,
@@ -59,6 +80,8 @@ export const getObjectsInBounds = async (req: Request, res: Response) => {
         silicate: obj.silicate,
         isotope: obj.isotope,
         scanStatus,
+        conquest: conquestData,
+        wormhole: wormholeData,
       };
     });
 
@@ -98,7 +121,23 @@ export const getTargetInfo = async (req: Request, res: Response) => {
       case SpaceObjectType.BLACK_HOLE:
         mappedType = "anomaly";
         break;
+      case SpaceObjectType.WORMHOLE:
+        mappedType = "wormhole";
+        break;
     }
+
+    const conquest = (obj as any).conquest;
+    const conquestData = conquest ? {
+      isActive: conquest.isActive,
+      progress: conquest.conquestPointsRequired > 0
+        ? Math.min(100, Math.round((conquest.conquestPoints / conquest.conquestPointsRequired) * 100))
+        : 0,
+    } : undefined;
+
+    const wormholeData = (obj as any).wormhole ? {
+      threatLevel: (obj as any).wormhole.threatLevel,
+      isClosed: (obj as any).wormhole.isClosed,
+    } : undefined;
 
     const formattedTarget = {
       id: obj.id,
@@ -112,6 +151,8 @@ export const getTargetInfo = async (req: Request, res: Response) => {
       titanium: obj.titanium,
       silicate: obj.silicate,
       isotope: obj.isotope,
+      conquest: conquestData,
+      wormhole: wormholeData,
     };
 
     return res.status(200).json({

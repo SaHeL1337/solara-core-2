@@ -484,6 +484,76 @@ function MessageBody({ body }: { body: string }) {
       );
     }
 
+    if ([
+      "CONQUER_FAIL", "CONQUEST_STARTED", "PLANET_UNDER_SIEGE", "FLEET_HOLDING",
+      "ATTACK_NO_TARGET", "COUNTER_ATTACK_FAILED", "COUNTER_ATTACK_SUCCESS",
+      "SIEGE_BROKEN", "CONQUEST_BROKEN", "CONQUEST_COMPLETE", "WORMHOLE_CLOSED",
+      "CONQUEST_COMPLETE_PARTICIPANT", "DEFEATED"
+    ].includes(data.type)) {
+      const isRed = ["CONQUER_FAIL", "PLANET_UNDER_SIEGE", "COUNTER_ATTACK_FAILED", "CONQUEST_BROKEN", "PLANET_LOST", "DEFEATED"].includes(data.type);
+      const isGreen = ["COUNTER_ATTACK_SUCCESS", "SIEGE_BROKEN", "CONQUEST_COMPLETE", "WORMHOLE_CLOSED", "CONQUEST_COMPLETE_PARTICIPANT"].includes(data.type);
+      
+      const borderColor = isRed ? "border-red-500/20" : isGreen ? "border-emerald-500/20" : "border-amber-500/20";
+      const bgColor = isRed ? "bg-red-500/5" : isGreen ? "bg-emerald-500/5" : "bg-amber-500/5";
+      const textColor = isRed ? "text-red-400" : isGreen ? "text-emerald-400" : "text-amber-400";
+      const labelColor = isRed ? "text-red-200" : isGreen ? "text-emerald-200" : "text-amber-200";
+      const icon = isRed ? <ShieldAlert className="w-5 h-5" /> : isGreen ? <CheckCircle2 className="w-5 h-5" /> : <Crown className="w-5 h-5" />;
+
+      let msgBody = data.message || "";
+      if (data.type === "CONQUEST_STARTED") {
+        msgBody = `Siege initiated at ${data.targetName}. Required conquest points: ${data.pointsRequired}. Send holding fleets to secure orbital position.`;
+      } else if (data.type === "PLANET_UNDER_SIEGE") {
+        msgBody = `WARNING: Your planet ${data.targetName} is under siege by player ${data.attackerId || 'unknown'}. Prepare orbital defenses immediately.`;
+      } else if (data.type === "FLEET_HOLDING") {
+        msgBody = `Your fleet has arrived and is now holding orbit at ${data.targetName}. Ready to assist in defensive or siege operations.`;
+      } else if (data.type === "CONQUEST_COMPLETE") {
+        msgBody = `VICTORY! Conquest of planet ${data.targetName} is complete. Control has been successfully transferred.`;
+      } else if (data.type === "WORMHOLE_CLOSED") {
+        msgBody = `SUCCESS! Wormhole ${data.targetName} has been successfully closed and deactivated. Threat eliminated.`;
+      }
+
+      return (
+        <div className="space-y-4">
+          <div className={`flex gap-3 border ${borderColor} ${bgColor} p-4 relative`}>
+            <div className={textColor}>{icon}</div>
+            <div className="flex-1 pr-24 pb-8">
+              <p className={`${labelColor} text-sm leading-relaxed`}>
+                {msgBody}
+              </p>
+            </div>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className={`absolute right-4 top-4 shrink-0 flex items-center gap-1.5 px-3 py-1 border transition-all font-bold text-[10px] uppercase tracking-widest ${
+                  isRed
+                    ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 hover:border-red-500"
+                    : isGreen
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500"
+                }`}
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+            {data.spaceObjectId && (
+              <Link
+                to={`/conquest/${data.spaceObjectId}`}
+                className={`absolute right-4 bottom-4 shrink-0 flex items-center gap-1.5 px-3 py-1 border transition-all font-bold text-[10px] uppercase tracking-widest ${
+                  isRed
+                    ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20 hover:border-red-500"
+                    : isGreen
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500"
+                }`}
+              >
+                <Crown className="w-3.5 h-3.5" /> Control Screen
+              </Link>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (data.type === "CONQUEST_SUCCESS") {
       return (
         <div className="space-y-4">

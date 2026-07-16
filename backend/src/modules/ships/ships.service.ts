@@ -58,6 +58,14 @@ export const queueShips = async (
     throw new Error("Quantity must be greater than 0");
   }
 
+  // Check if planet is under active siege/conquest
+  const activeConquest = await prisma.conquest.findUnique({
+    where: { spaceObjectId: planetId },
+  });
+  if (activeConquest && activeConquest.isActive) {
+    throw new Error("Cannot build ships while under siege");
+  }
+
   const shipyard = await prisma.planetBuilding.findUnique({
     where: { planetId_type: { planetId, type: "SHIPYARD" } },
   });

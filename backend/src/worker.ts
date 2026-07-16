@@ -31,9 +31,9 @@ async function startWorker() {
     }
 
     try {
-      await jobService.processSovereigntyRegeneration();
+      await jobService.processConquestTicks();
     } catch (error) {
-      console.error("Worker error processing sovereignty regen:", error);
+      console.error("Worker error processing conquest ticks:", error);
     }
   }, POLL_INTERVAL_MS);
 }

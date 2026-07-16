@@ -8,6 +8,7 @@ import {
   Search,
   MapPin,
   Shield,
+  ShieldAlert,
   Check,
   ChevronDown,
   ChevronUp,
@@ -33,7 +34,7 @@ const BUILDING_NAMES: Record<string, string> = {
   TRADING_HUB: "Trading Hub",
 };
 
-type SortField = "name" | "x" | "sovereignty" | "titanium";
+type SortField = "name" | "x" | "status" | "titanium";
 type SortDir = "asc" | "desc";
 
 export default function Planets() {
@@ -74,8 +75,10 @@ export default function Planets() {
         case "x":
           cmp = a.x - b.x || a.y - b.y;
           break;
-        case "sovereignty":
-          cmp = a.sovereignty - b.sovereignty;
+        case "status":
+          const aSiege = a.conquest?.isActive ? 1 : 0;
+          const bSiege = b.conquest?.isActive ? 1 : 0;
+          cmp = aSiege - bSiege;
           break;
         case "titanium":
           cmp = (a.titanium + a.silicate + a.isotope) - (b.titanium + b.silicate + b.isotope);
@@ -212,7 +215,7 @@ export default function Planets() {
             [
               { field: "name" as SortField, label: "Name" },
               { field: "x" as SortField, label: "Position" },
-              { field: "sovereignty" as SortField, label: "Sovereignty" },
+              { field: "status" as SortField, label: "Status" },
               { field: "titanium" as SortField, label: "Resources" },
             ] as const
           ).map(({ field, label }) => (
@@ -241,19 +244,8 @@ export default function Planets() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {planets.map((planet) => {
             const isSelected = selectedPlanet?.id === planet.id;
-            const sovPercent = planet.sovereignty;
-            const sovColor =
-              sovPercent > 75
-                ? "from-emerald-500 to-emerald-400"
-                : sovPercent > 40
-                  ? "from-amber-500 to-amber-400"
-                  : "from-red-500 to-red-400";
-            const sovTextColor =
-              sovPercent > 75
-                ? "text-emerald-400"
-                : sovPercent > 40
-                  ? "text-amber-400"
-                  : "text-red-400";
+            const isSieged = planet.conquest?.isActive;
+            const conquestProgress = planet.conquest?.progress || 0;
 
             const attachedTemplate = userTemplates.find(
               (t) => t.tagId && planet.tags?.some((pt) => pt.id === t.tagId)
@@ -309,23 +301,42 @@ export default function Planets() {
                       </div>
                     )}
 
-                    {/* Sovereignty */}
+                    {/* Conquest / Siege Status */}
                     <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center gap-1.5">
-                          <Shield className="w-3.5 h-3.5 text-[#475569]" />
-                          <span className="text-xs font-semibold uppercase tracking-wide text-[#64748b]">
-                            Sovereignty
+                      {isSieged ? (
+                        <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg space-y-2 relative z-10">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-red-400 flex items-center gap-1.5 animate-pulse">
+                              <ShieldAlert className="w-3.5 h-3.5" /> Under Siege
+                            </span>
+                            <span className="text-xs font-mono font-bold text-red-400">{conquestProgress}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-[#0d0e12] rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-red-500 animate-pulse"
+                              style={{ width: `${conquestProgress}%` }}
+                            />
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/conquest/${planet.id}`);
+                            }}
+                            className="w-full text-center py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-wider border border-red-500/30 transition-all rounded pointer-events-auto cursor-pointer"
+                          >
+                            Enter Defense Control
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-lg flex items-center justify-between relative z-10">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5" /> Secure Status
+                          </span>
+                          <span className="text-[9px] uppercase bg-emerald-500/20 px-2 py-0.5 text-emerald-400 border border-emerald-500/30 font-bold rounded-sm">
+                            Protected
                           </span>
                         </div>
-                        <span className={`text-sm font-bold font-mono ${sovTextColor}`}>{sovPercent}%</span>
-                      </div>
-                      <div className="w-full h-2 bg-[#0d0e12] rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full bg-gradient-to-r ${sovColor} transition-all duration-500`}
-                          style={{ width: `${sovPercent}%` }}
-                        />
-                      </div>
+                      )}
                     </div>
 
                     {/* Resources — vertical stack with mini bars */}
@@ -512,20 +523,13 @@ export default function Planets() {
           <div className="grid grid-cols-[1fr_100px_130px_1fr_160px_110px] gap-0 text-[10px] font-bold tracking-widest uppercase text-[#475569] border-b border-[#2a2e38] px-5 py-3">
             <span>Planet</span>
             <span>Position</span>
-            <span>Sovereignty</span>
+            <span>Status</span>
             <span>Resources</span>
             <span>Tags & Template</span>
             <span className="text-right">Population</span>
           </div>
           {planets.map((planet) => {
             const isSelected = selectedPlanet?.id === planet.id;
-            const sovColor =
-              planet.sovereignty > 75
-                ? "bg-emerald-500"
-                : planet.sovereignty > 40
-                  ? "bg-amber-500"
-                  : "bg-red-500";
-
             const attachedTemplate = userTemplates.find(
               (t) => t.tagId && planet.tags?.some((pt) => pt.id === t.tagId)
             );
@@ -559,11 +563,22 @@ export default function Planets() {
                 <span className="text-xs font-mono text-[#94a3b8] relative z-10 pointer-events-none">
                   {planet.x}, {planet.y}
                 </span>
-                <div className="flex items-center gap-2.5 relative z-10 pointer-events-none">
-                  <div className="w-16 h-2 bg-[#0a0b0e] rounded-full border border-[#2a2e38] overflow-hidden">
-                    <div className={`h-full rounded-full ${sovColor}`} style={{ width: `${planet.sovereignty}%` }} />
-                  </div>
-                  <span className="text-xs font-mono text-[#64748b]">{planet.sovereignty}</span>
+                <div className="flex items-center gap-2 relative z-10">
+                  {planet.conquest?.isActive ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/conquest/${planet.id}`);
+                      }}
+                      className="flex items-center gap-1 text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/30 px-2 py-0.5 animate-pulse rounded pointer-events-auto cursor-pointer"
+                    >
+                      <ShieldAlert className="w-3 h-3 text-red-400" /> Siege ({planet.conquest.progress}%)
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded">
+                      Secure
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3.5 relative z-10 pointer-events-none">
                   <div className="flex items-center gap-1.5">

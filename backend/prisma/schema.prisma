@@ -23,6 +23,7 @@ model User {
   templates       PlanetTemplate[]
   researchedNodes ResearchedNode[]
   researchQueue   ResearchQueue[]
+  conquests       Conquest[]
 }
 
 
@@ -31,6 +32,7 @@ enum SpaceObjectType {
   PLANET
   ASTEROID
   BLACK_HOLE
+  WORMHOLE
 }
 
 model SpaceObject {
@@ -45,6 +47,8 @@ model SpaceObject {
   updatedAt   DateTime        @default(now())
 
   planet      Planet?
+  wormhole    Wormhole?
+  conquest    Conquest?
   
   outgoingFleets FleetMovement[] @relation("OriginSpaceObject")
   incomingFleets FleetMovement[] @relation("TargetSpaceObject")
@@ -65,8 +69,6 @@ model Planet {
   population  Int @default(0)
   populationCapacity Int @default(0)
   storageCapacity Int @default(10000)
-  sovereignty Int @default(100)
-  sovereigntyUpdatedAt DateTime @default(now())
   
   scanReports     ScanReport[]
   tags            Tag[] @relation("PlanetTags")
@@ -79,12 +81,14 @@ enum MissionType {
   SCAN
   SUPPORT
   CONQUER
+  HOLD
 }
 
 enum FleetMovementStatus {
   EN_ROUTE
   RETURNING
   COMPLETED
+  HOLDING
 }
 
 model FleetMovement {
@@ -285,4 +289,26 @@ model ResearchQueue {
   durationSec  Int
   startedAt    DateTime?
   finishedAt   DateTime
+}
+
+model Wormhole {
+  id            String    @id
+  spaceObject   SpaceObject @relation(fields: [id], references: [id], onDelete: Cascade)
+  threatLevel   Int       @default(1)   // 1-5
+  isClosed      Boolean   @default(false)
+  closedAt      DateTime?
+}
+
+model Conquest {
+  id                     String      @id @default(uuid())
+  spaceObjectId          String      @unique
+  spaceObject            SpaceObject @relation(fields: [spaceObjectId], references: [id], onDelete: Cascade)
+  initiatorId            String
+  initiator              User        @relation(fields: [initiatorId], references: [id])
+  conquestPoints         Float       @default(0)
+  conquestPointsRequired Float
+  lastTickAt             DateTime    @default(now())
+  lastDefenseAt          DateTime?
+  startedAt              DateTime    @default(now())
+  isActive               Boolean     @default(true)
 }

@@ -4,7 +4,6 @@ import {
   ShieldAlert,
   WifiHigh,
   Factory,
-  Zap,
   X,
   MapPin,
   Compass,
@@ -25,7 +24,7 @@ import { toast } from "sonner";
 
 export type SpaceObject = {
   id: string;
-  type: "planet" | "asteroid" | "anomaly";
+  type: "planet" | "asteroid" | "anomaly" | "wormhole";
   name: string;
   x: number;
   y: number;
@@ -37,6 +36,17 @@ export type SpaceObject = {
   silicate?: number;
   isotope?: number;
   scanStatus?: "success" | "failed" | "unscanned";
+  wormhole?: {
+    threatLevel: number;
+    isClosed: boolean;
+  };
+  conquest?: {
+    isActive: boolean;
+    progress: number;
+    conquestPoints?: number;
+    conquestPointsRequired?: number;
+    initiatorId?: string;
+  };
 };
 
 interface MapDetailPanelProps {
@@ -264,6 +274,7 @@ export function MapDetailPanel({
     planet: { label: "Planet", color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/30" },
     asteroid: { label: "Asteroid", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/30" },
     anomaly: { label: "Anomaly", color: "text-purple-400", bg: "bg-purple-400/10 border-purple-400/30" },
+    wormhole: { label: "Wormhole", color: "text-violet-400", bg: "bg-violet-400/10 border-violet-400/30" },
   }[object.type];
 
   return (
@@ -483,30 +494,50 @@ export function MapDetailPanel({
           </>
         )}
 
-        {/* Sovereignty Bar — shown for planets with scan data */}
-        {isPlanet && scanReport && !scanReport.failed && scanReport.sovereignty !== undefined && (
-          <Section title="Sovereignty" icon={Shield} iconColor="text-amber-400">
-            <div className="bg-[#16181d] border border-[#1e2028] p-3">
+        {/* Conquest Status if active */}
+        {object.conquest?.isActive && (
+          <Section title="Conquest Status" icon={Crown} iconColor="text-amber-400">
+            <div className="bg-[#16181d] border border-[#1e2028] p-3 space-y-3">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#94a3b8]">Planetary Defense</span>
-                <span className={`text-xs font-mono font-bold ${
-                  scanReport.sovereignty > 75 ? 'text-emerald-400' :
-                  scanReport.sovereignty > 40 ? 'text-amber-400' :
-                  scanReport.sovereignty > 0 ? 'text-red-400' : 'text-[#64748b]'
-                }`}>
-                  {scanReport.sovereignty}/100
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Siege in Progress</span>
+                <span className="text-xs font-mono font-bold text-amber-400">
+                  {object.conquest.progress}%
                 </span>
               </div>
               <div className="w-full h-2 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
                 <div
-                  className={`h-full transition-all duration-500 ${
-                    scanReport.sovereignty > 75 ? 'bg-emerald-500' :
-                    scanReport.sovereignty > 40 ? 'bg-amber-500' :
-                    scanReport.sovereignty > 0 ? 'bg-red-500' : 'bg-[#2a2e38]'
-                  }`}
-                  style={{ width: `${scanReport.sovereignty}%` }}
+                  className="h-full bg-amber-500 transition-all duration-500 animate-pulse"
+                  style={{ width: `${object.conquest.progress}%` }}
                 />
               </div>
+              <button
+                onClick={() => navigate(`/conquest/${object.id}`)}
+                className="w-full text-center py-2 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[10px] font-bold uppercase tracking-wider border border-amber-500/30 transition-all rounded"
+              >
+                View Conquest Overview
+              </button>
+            </div>
+          </Section>
+        )}
+
+        {/* Wormhole Parameters */}
+        {object.type === "wormhole" && object.wormhole && (
+          <Section title="Wormhole Data" icon={ShieldAlert} iconColor="text-violet-400">
+            <div className="bg-[#16181d] border border-[#1e2028] p-3 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-[#64748b] font-bold uppercase tracking-wider">Status:</span>
+                <span className={`font-mono font-bold uppercase ${object.wormhole.isClosed ? 'text-emerald-400' : 'text-purple-400'}`}>
+                  {object.wormhole.isClosed ? "Closed / Inactive" : "Open / Active"}
+                </span>
+              </div>
+              {!object.wormhole.isClosed && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-[#64748b] font-bold uppercase tracking-wider">Threat Level:</span>
+                  <span className="font-mono font-bold text-purple-400">
+                    {object.wormhole.threatLevel} / 5
+                  </span>
+                </div>
+              )}
             </div>
           </Section>
         )}
@@ -567,20 +598,21 @@ export function MapDetailPanel({
               icon={Crosshair}
               label="Attack"
               onClick={() => navigate(`/fleet?action=ATTACK&targetX=${object.x}&targetY=${object.y}`)}
-              disabled={isSelf}
+              disabled={isSelf || (object.type === "wormhole" && object.wormhole?.isClosed)}
               variant="danger"
             />
             <ActionButton
               icon={Crown}
               label="Conquer"
               onClick={() => navigate(`/fleet?action=CONQUER&targetX=${object.x}&targetY=${object.y}`)}
-              disabled={isSelf}
+              disabled={isSelf || (object.type === "wormhole" && object.wormhole?.isClosed) || object.conquest?.isActive}
               variant="conquest"
             />
             <ActionButton
-              icon={Zap}
-              label="Support"
-              onClick={() => navigate(`/fleet?action=SUPPORT&targetX=${object.x}&targetY=${object.y}`)}
+              icon={Shield}
+              label="Hold"
+              onClick={() => navigate(`/fleet?action=HOLD&targetX=${object.x}&targetY=${object.y}`)}
+              disabled={object.type === "wormhole" && object.wormhole?.isClosed}
               variant="success"
             />
           </div>

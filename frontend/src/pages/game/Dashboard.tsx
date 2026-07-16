@@ -12,13 +12,15 @@ import {
   RotateCcw,
   Package,
   Ship,
+  Crown,
+  Shield,
 } from "lucide-react";
 import { DashboardStats } from "./DashboardStats";
 
 type FleetMovement = {
   id: string;
-  missionType: "ATTACK" | "MINE" | "EXPLORE";
-  status: "EN_ROUTE" | "RETURNING";
+  missionType: "ATTACK" | "MINE" | "EXPLORE" | "CONQUER" | "HOLD";
+  status: "EN_ROUTE" | "RETURNING" | "HOLDING";
   startTime: string;
   arrivalTime: string;
   returnArrivalTime?: string;
@@ -30,25 +32,29 @@ type FleetMovement = {
 
 export default function Dashboard() {
   const [movements, setMovements] = useState<FleetMovement[]>([]);
+  const [activeConquests, setActiveConquests] = useState<any[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchMovements = useCallback(async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
-      const { data } = await api.get("/fleet/movements");
-      setMovements(data.data);
+      const movementsRes = await api.get("/fleet/movements");
+      setMovements(movementsRes.data.data);
+
+      const conquestsRes = await api.get("/conquest/active");
+      setActiveConquests(conquestsRes.data.data);
     } catch (err) {
-      console.error("Failed to fetch movements", err);
+      console.error("Failed to fetch dashboard data", err);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMovements();
-    const interval = setInterval(fetchMovements, 5000);
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
     return () => clearInterval(interval);
-  }, [fetchMovements]);
+  }, [fetchDashboardData]);
 
   if (isLoading) {
     return (
@@ -62,6 +68,53 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Active Sieges section */}
+      {activeConquests.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-amber-400" />
+            <h2 className="text-sm font-bold text-white tracking-wide uppercase">
+              Active Sieges & Conquests
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {activeConquests.map((c) => (
+              <div key={c.id} className="bg-[#1a1d24] border border-amber-500/20 p-4 flex flex-col justify-between hover:border-amber-500/40 transition-all shadow-lg">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider truncate max-w-[150px]">{c.name}</span>
+                    <span className="text-[9px] uppercase bg-amber-500/10 px-2 py-0.5 text-amber-400 border border-amber-500/20 font-bold tracking-widest">
+                      {c.type}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-[#64748b] font-mono mb-3">
+                    Coords: X: {c.x} Y: {c.y}
+                  </div>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex justify-between text-[10px] font-mono">
+                      <span className="text-[#94a3b8]">Progress:</span>
+                      <span className="text-amber-400 font-bold">{c.progress}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-[#0a0b0e] border border-[#2a2e38] overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 animate-pulse"
+                        style={{ width: `${c.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={`/conquest/${c.spaceObjectId}`}
+                  className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-black text-center text-xs font-bold uppercase tracking-wider transition-colors select-none rounded-sm"
+                >
+                  View Conquest Control
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-xl font-bold text-white tracking-wide uppercase">
@@ -138,6 +191,8 @@ function FleetCard({
     ATTACK: <Target className="w-4 h-4 text-red-400" />,
     MINE: <Pickaxe className="w-4 h-4 text-[#00E5FF]" />,
     EXPLORE: <MapIcon className="w-4 h-4 text-indigo-400" />,
+    CONQUER: <Crown className="w-4 h-4 text-amber-400" />,
+    HOLD: <Shield className="w-4 h-4 text-emerald-400" />,
   }[fleet.missionType];
 
   const totalShips = fleet.ships.reduce((a, b) => a + b.count, 0);
@@ -151,10 +206,18 @@ function FleetCard({
         onClick={toggleExpand}
       >
         <div
-          className={`w-10 h-10 shrink-0 flex items-center justify-center bg-[#16181d] border border-[#2a2e38] ${fleet.status === "RETURNING" ? "text-amber-400 border-amber-500/30" : "text-[#00E5FF] border-[#00E5FF]/30"}`}
+          className={`w-10 h-10 shrink-0 flex items-center justify-center bg-[#16181d] border border-[#2a2e38] ${
+            fleet.status === "RETURNING"
+              ? "text-amber-400 border-amber-500/30"
+              : fleet.status === "HOLDING"
+                ? "text-emerald-400 border-emerald-500/30"
+                : "text-[#00E5FF] border-[#00E5FF]/30"
+          }`}
         >
           {fleet.status === "EN_ROUTE" ? (
             <ArrowRight className="w-5 h-5" />
+          ) : fleet.status === "HOLDING" ? (
+            <Shield className="w-5 h-5" />
           ) : (
             <RotateCcw className="w-5 h-5" />
           )}
@@ -201,11 +264,17 @@ function FleetCard({
             <div className="text-[9px] font-bold text-[#64748b] tracking-widest uppercase mb-0.5">
               Arrival
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#00E5FF]">
-              <Timer className="w-3 h-3" />
-              <span>
-                {Math.floor(timeLeft / 60)}m {timeLeft % 60}s
-              </span>
+            <div className={`flex items-center gap-1.5 text-xs font-mono ${fleet.status === "HOLDING" ? "text-emerald-400" : "text-[#00E5FF]"}`}>
+              {fleet.status === "HOLDING" ? (
+                <span className="text-[10px] font-bold uppercase tracking-widest">Holding</span>
+              ) : (
+                <>
+                  <Timer className="w-3 h-3" />
+                  <span>
+                    {Math.floor(timeLeft / 60)}m {timeLeft % 60}s
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

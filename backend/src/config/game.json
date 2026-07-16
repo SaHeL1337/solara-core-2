@@ -24,17 +24,20 @@
     }
   },
   "conquest": {
-    "sovereigntyReductionMin": 15,
-    "sovereigntyReductionMax": 25,
-    "sovereigntyRegenPerHour": 1,
-    "maxSovereignty": 100,
-    "sovereigntyAfterConquest": 50,
-    "colonyShipConsumed": true
+    "conquestPointsRequired": 100,
+    "populationPerConquestPoint": 10,
+    "minimumPopulationForConquest": 10,
+    "conquestTickIntervalMinutes": 5,
+    "conquestDecayPercent": 5,
+    "colonyShipConsumed": true,
+    "defenseCooldownSeconds": 300,
+    "wormholeConquestPointsMultiplier": 1
   },
   "playerClasses": ["Commander", "Bastion", "Harvester"],
   "asteroidsPerPlayer": 3,
   "blackHolesPerPlayer": 1,
   "npcPlanetsPerPlayer": 5,
+  "wormholesPerPlayer": 5,
   "trading": {
     "fluxBaseRatio": {
       "titanium": 1000,

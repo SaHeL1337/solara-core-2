@@ -51,6 +51,18 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
           filter: `hue-rotate(${hueRotate}deg) saturate(0.8) opacity(0.85)`,
         };
       }
+    } else if (obj.type === "wormhole") {
+      if (obj.wormhole?.isClosed) {
+        customStyle = {
+          filter: `grayscale(100%) opacity(0.25) blur(1px)`,
+        };
+        customClassName = "flex items-center justify-center opacity-40 z-[900] relative";
+      } else {
+        customStyle = {
+          filter: `drop-shadow(0 0 10px rgba(208,0,255,0.8)) drop-shadow(0 0 20px rgba(139,0,255,0.5)) brightness(1.2)`,
+        };
+        customClassName = "flex items-center justify-center z-[1000] relative animate-pulse";
+      }
     }
 
     // Override with selection glow
@@ -75,6 +87,18 @@ function createIconMarkup(obj: SpaceObject, currentZoom: number, isMined: boolea
             boxShadow: "0 0 20px rgba(0,229,255,0.4), 0 0 40px rgba(0,229,255,0.15), inset 0 0 15px rgba(0,229,255,0.1)",
             animation: "pulse 2s ease-in-out infinite",
           }} />
+        )}
+        {obj.conquest?.isActive && (
+          <div 
+            className="animate-pulse"
+            style={{
+              position: "absolute",
+              inset: "-6px",
+              border: "2px dashed #f59e0b",
+              borderRadius: "50%",
+              boxShadow: "0 0 12px rgba(245,158,11,0.5), inset 0 0 8px rgba(245,158,11,0.2)",
+            }} 
+          />
         )}
         <img
           src={obj.imageUrl}

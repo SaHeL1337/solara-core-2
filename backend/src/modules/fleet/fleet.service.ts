@@ -24,7 +24,12 @@ export class FleetService {
 
       // 2. Validate target
       const targetObject = await tx.spaceObject.findUnique({
-        where: { id: targetId }
+        where: { id: targetId },
+        include: {
+          planet: true,
+          wormhole: true,
+          conquest: { where: { isActive: true } },
+        }
       });
 
       if (!targetObject) {
@@ -33,20 +38,44 @@ export class FleetService {
 
       // 2b. Validate CONQUER mission requirements
       if (missionType === MissionType.CONQUER) {
-        if (targetObject.type !== SpaceObjectType.PLANET) {
-          throw new Error("Conquest missions can only target planets");
+        // Can only conquer planets and wormholes
+        if (targetObject.type !== SpaceObjectType.PLANET && targetObject.type !== SpaceObjectType.WORMHOLE) {
+          throw new Error("Conquest missions can only target planets or wormholes");
         }
-        const targetPlanet = await tx.planet.findUnique({
-          where: { id: targetId }
-        });
-        if (targetPlanet && targetPlanet.ownerId === userId) {
+        // Can't conquer own planet
+        if (targetObject.planet && targetObject.planet.ownerId === userId) {
           throw new Error("You cannot conquer your own planet");
         }
-        const hasColonyShip = Object.entries(ships).some(
-          ([type, qty]) => type === "COLONY_SHIP" && (qty as number) > 0
-        );
-        if (!hasColonyShip) {
-          throw new Error("Conquest missions require at least one Colony Ship");
+        // Can't conquer closed wormholes
+        if (targetObject.wormhole && targetObject.wormhole.isClosed) {
+          throw new Error("This wormhole is already closed");
+        }
+
+        // Colony ship required for planets only (not wormholes)
+        if (targetObject.type === SpaceObjectType.PLANET) {
+          const hasColonyShip = Object.entries(ships).some(
+            ([type, qty]) => type === "COLONY_SHIP" && (qty as number) > 0
+          );
+          if (!hasColonyShip) {
+            throw new Error("Conquest missions on planets require at least one Colony Ship");
+          }
+        }
+      }
+
+      // 2c. Validate HOLD mission
+      if (missionType === MissionType.HOLD) {
+        if (targetObject.type !== SpaceObjectType.PLANET && targetObject.type !== SpaceObjectType.WORMHOLE) {
+          throw new Error("Hold missions can only target planets or wormholes");
+        }
+        if (targetObject.wormhole && targetObject.wormhole.isClosed) {
+          throw new Error("This wormhole is already closed");
+        }
+      }
+
+      // 2d. Validate ATTACK mission
+      if (missionType === MissionType.ATTACK) {
+        if (targetObject.type !== SpaceObjectType.PLANET && targetObject.type !== SpaceObjectType.WORMHOLE) {
+          throw new Error("Attack missions can only target planets or wormholes");
         }
       }
 
@@ -125,7 +154,7 @@ export class FleetService {
     return await (prisma as any).fleetMovement.findMany({
       where: {
         userId,
-        status: { in: [FleetMovementStatus.EN_ROUTE, FleetMovementStatus.RETURNING] }
+        status: { in: [FleetMovementStatus.EN_ROUTE, FleetMovementStatus.RETURNING, FleetMovementStatus.HOLDING] }
       },
       include: {
         origin: true,

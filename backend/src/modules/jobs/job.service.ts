@@ -2,6 +2,7 @@ import {
   QueueStatus,
   FleetMovementStatus,
   MissionType,
+  SpaceObjectType,
 } from "../../generated/prisma";
 import { prisma } from "../../lib/prisma";
 import { getBuildingConfig } from "../buildings/buildings.config.service";
@@ -11,6 +12,7 @@ import { createMessage } from "../messages/messages.service";
 import { MessageCategory } from "../../generated/prisma";
 import { ResourceService } from "../resources/resourc.service";
 import gameConfig from "../../config/game.json";
+import shipConfigJson from "../../config/ships.json";
 
 export class JobService {
   async processCompletedBuildings() {
@@ -531,7 +533,6 @@ export class JobService {
                   ships: f.ships.map((s: any) => ({ type: s.type, count: s.count }))
                 })),
                 ownerId: target.planet.ownerId,
-                sovereignty: target.planet.sovereignty,
               };
 
               // Upsert the scan report
@@ -587,189 +588,18 @@ export class JobService {
           }
         }
       } else if (missionType === MissionType.CONQUER) {
-        if (!targetId) {
-          console.log(`  Conquest mission ${id} target was destroyed before arrival. Skipping.`);
-          await createMessage({
-            recipientId: fleet.userId,
-            title: "Conquest Mission: Target Lost",
-            body: JSON.stringify({
-              type: "CONQUER_FAIL",
-              message: "Your fleet arrived at the coordinates, but the target planet was no longer there.",
-              targetX: fleet.targetX,
-              targetY: fleet.targetY,
-            }),
-            category: MessageCategory.CONQUEST,
-            tags: ["conquest", "system"],
-          });
-        } else {
-          const target = await tx.spaceObject.findUnique({
-            where: { id: targetId },
-            include: {
-              planet: {
-                include: {
-                  owner: true,
-                }
-              }
-            }
-          });
+        await this.handleConquerArrival(tx, fleet);
+      } else if (missionType === MissionType.HOLD) {
+        await this.handleHoldArrival(tx, fleet);
+      } else if (missionType === MissionType.ATTACK) {
+        await this.handleAttackArrival(tx, fleet);
+      }
 
-          if (target && target.planet) {
-            console.log(`  Executing CONQUER mission at ${target.name}`);
-
-            // TODO: Combat resolution — for now assume victory
-            const combatWon = true;
-
-            if (!combatWon) {
-              // Colony ship destroyed, fleet returns
-              console.log(`  Combat lost at ${target.name}. Colony ship destroyed.`);
-            } else {
-              // Calculate sovereignty reduction with randomness
-              const conquestConfig = (gameConfig as any).conquest;
-              const baseReduction = Math.floor(
-                Math.random() * (conquestConfig.sovereigntyReductionMax - conquestConfig.sovereigntyReductionMin + 1)
-              ) + conquestConfig.sovereigntyReductionMin;
-              
-              // TODO: Apply modifiers here in the future
-              const totalReduction = baseReduction;
-
-              const currentSovereignty = target.planet.sovereignty;
-              const newSovereignty = Math.max(0, currentSovereignty - totalReduction);
-
-              console.log(`  Sovereignty reduced: ${currentSovereignty} -> ${newSovereignty} (reduction: ${totalReduction})`);
-
-              if (newSovereignty <= 0) {
-                // Planet conquered! Transfer ownership
-                const previousOwnerId = target.planet.ownerId;
-                const attackerId = fleet.userId;
-
-                await tx.planet.update({
-                  where: { id: target.planet.id },
-                  data: {
-                    ownerId: attackerId,
-                    sovereignty: conquestConfig.sovereigntyAfterConquest || 50,
-                    sovereigntyUpdatedAt: new Date(),
-                  },
-                });
-
-                console.log(`  Planet ${target.name} conquered! Ownership transferred from ${previousOwnerId} to ${attackerId}`);
-
-                // Send conquest success message to attacker
-                await createMessage({
-                  recipientId: attackerId,
-                  title: `Planet Conquered: ${target.name}`,
-                  body: JSON.stringify({
-                    type: "CONQUEST_SUCCESS",
-                    targetName: target.name,
-                    planetId: target.planet.id,
-                    previousOwner: previousOwnerId,
-                    sovereigntyReduction: totalReduction,
-                    targetX: target.x,
-                    targetY: target.y,
-                  }),
-                  category: MessageCategory.CONQUEST,
-                  tags: ["conquest", "success"],
-                });
-
-                // Send planet lost message to defender (if not SYSTEM)
-                if (previousOwnerId !== "SYSTEM") {
-                  await createMessage({
-                    recipientId: previousOwnerId,
-                    title: `Planet Lost: ${target.name}`,
-                    body: JSON.stringify({
-                      type: "PLANET_LOST",
-                      targetName: target.name,
-                      planetId: target.planet.id,
-                      conqueredBy: attackerId,
-                      targetX: target.x,
-                      targetY: target.y,
-                    }),
-                    category: MessageCategory.CONQUEST,
-                    tags: ["conquest", "lost"],
-                  });
-
-                  // Check if defender has any remaining planets
-                  const remainingPlanets = await tx.planet.count({
-                    where: { ownerId: previousOwnerId },
-                  });
-
-                  if (remainingPlanets === 0) {
-                    console.log(`  Player ${previousOwnerId} has been defeated! No remaining planets.`);
-                    
-                    await tx.user.update({
-                      where: { id: previousOwnerId },
-                      data: { isDefeated: true, isSetupComplete: false },
-                    });
-
-                    await createMessage({
-                      recipientId: previousOwnerId,
-                      title: "Defeat: All Planets Lost",
-                      body: JSON.stringify({
-                        type: "DEFEATED",
-                        message: "You have lost all your planets. Set up a new command center to continue playing.",
-                      }),
-                      category: MessageCategory.CONQUEST,
-                      tags: ["conquest", "defeated"],
-                    });
-                  }
-                }
-              } else {
-                // Sovereignty reduced but not conquered yet
-                await tx.planet.update({
-                  where: { id: target.planet.id },
-                  data: {
-                    sovereignty: newSovereignty,
-                    sovereigntyUpdatedAt: new Date(),
-                  },
-                });
-
-                // Send siege progress message to attacker
-                await createMessage({
-                  recipientId: fleet.userId,
-                  title: `Siege Progress: ${target.name}`,
-                  body: JSON.stringify({
-                    type: "CONQUEST_PROGRESS",
-                    targetName: target.name,
-                    planetId: target.planet.id,
-                    sovereigntyReduction: totalReduction,
-                    remainingSovereignty: newSovereignty,
-                    targetX: target.x,
-                    targetY: target.y,
-                  }),
-                  category: MessageCategory.CONQUEST,
-                  tags: ["conquest", "progress"],
-                });
-
-                // Send under attack message to defender (if not SYSTEM)
-                if (target.planet.ownerId !== "SYSTEM") {
-                  await createMessage({
-                    recipientId: target.planet.ownerId,
-                    title: `Planet Under Attack: ${target.name}`,
-                    body: JSON.stringify({
-                      type: "PLANET_UNDER_ATTACK",
-                      targetName: target.name,
-                      planetId: target.planet.id,
-                      sovereigntyRemaining: newSovereignty,
-                      targetX: target.x,
-                      targetY: target.y,
-                    }),
-                    category: MessageCategory.CONQUEST,
-                    tags: ["conquest", "attack"],
-                  });
-                }
-              }
-            }
-
-            // Colony ship is consumed on arrival (if configured)
-            const conquestCfg = (gameConfig as any).conquest;
-            if (conquestCfg.colonyShipConsumed) {
-              // Remove colony ships from the fleet (they are consumed)
-              await tx.fleetShip.updateMany({
-                where: { fleetMovementId: id, type: "COLONY_SHIP" },
-                data: { count: 0 },
-              });
-            }
-          }
-        }
+      // For HOLD and CONQUER (successful), the fleet stays as HOLDING — skip the return logic
+      // Re-check fleet status since handlers may have changed it
+      const updatedFleet = await tx.fleetMovement.findUnique({ where: { id } });
+      if (updatedFleet && updatedFleet.status === FleetMovementStatus.HOLDING) {
+        return; // Fleet is holding, don't set to returning
       }
 
       // Check if there are any ships left to return (colony ships may have been consumed)
@@ -796,6 +626,441 @@ export class JobService {
           },
         });
       }
+    });
+  }
+
+  /**
+   * Handle CONQUER mission arrival:
+   * 1. Combat (50/50) against garrison
+   * 2. If won: consume colony ship (planet), start conquest, fleet → HOLDING
+   * 3. If lost: fleet returns home
+   */
+  private async handleConquerArrival(tx: any, fleet: any) {
+    const { id, targetId, ships, userId } = fleet;
+
+    if (!targetId) {
+      console.log(`  Conquest mission ${id} target was destroyed before arrival.`);
+      await createMessage({
+        recipientId: userId,
+        title: "Conquest Mission: Target Lost",
+        body: JSON.stringify({
+          type: "CONQUER_FAIL",
+          message: "Your fleet arrived at the coordinates, but the target was no longer there.",
+          targetX: fleet.targetX,
+          targetY: fleet.targetY,
+        }),
+        category: MessageCategory.CONQUEST,
+        tags: ["conquest", "system"],
+      });
+      return;
+    }
+
+    const target = await tx.spaceObject.findUnique({
+      where: { id: targetId },
+      include: {
+        planet: { include: { owner: true, ships: true } },
+        wormhole: true,
+        conquest: true,
+      },
+    });
+
+    if (!target) return;
+
+    console.log(`  Executing CONQUER mission at ${target.name}`);
+
+    const targetConquest = target.conquest;
+    const isAlreadyConquering = targetConquest && targetConquest.isActive;
+
+    if (isAlreadyConquering) {
+      if (target.type === SpaceObjectType.WORMHOLE) {
+        // Wormhole: switch to HOLDING directly, no combat needed
+        console.log(`  Wormhole conquest already in progress. Converting fleet ${id} to HOLDING.`);
+        await tx.fleetMovement.update({
+          where: { id },
+          data: { status: FleetMovementStatus.HOLDING },
+        });
+
+        await createMessage({
+          recipientId: userId,
+          title: `Fleet Holding: ${target.name}`,
+          body: JSON.stringify({
+            type: "FLEET_HOLDING",
+            targetName: target.name,
+            spaceObjectId: targetId,
+            targetX: target.x,
+            targetY: target.y,
+          }),
+          category: MessageCategory.CONQUEST,
+          tags: ["conquest", "holding"],
+        });
+        return;
+      } else if (target.type === SpaceObjectType.PLANET) {
+        // Planet: check if it's the same initiator
+        if (targetConquest.initiatorId === userId) {
+          console.log(`  Planet conquest already in progress by same user. Converting fleet ${id} to HOLDING.`);
+          await tx.fleetMovement.update({
+            where: { id },
+            data: { status: FleetMovementStatus.HOLDING },
+          });
+
+          await createMessage({
+            recipientId: userId,
+            title: `Fleet Holding: ${target.name}`,
+            body: JSON.stringify({
+              type: "FLEET_HOLDING",
+              targetName: target.name,
+              spaceObjectId: targetId,
+              targetX: target.x,
+              targetY: target.y,
+            }),
+            category: MessageCategory.CONQUEST,
+            tags: ["conquest", "holding"],
+          });
+          return;
+        }
+      }
+    }
+
+    // Check if target has garrison (ships)
+    const garrisonShips = target.planet?.ships || [];
+    const hasGarrison = garrisonShips.some((s: any) => s.count > 0);
+
+    // Combat resolution: if garrison exists, 50/50 random. If no garrison, auto-win.
+    let combatWon = true;
+    if (hasGarrison) {
+      combatWon = Math.random() >= 0.5;
+    }
+
+    if (!combatWon) {
+      console.log(`  Combat lost at ${target.name}. Fleet retreating.`);
+      await createMessage({
+        recipientId: userId,
+        title: `Conquest Failed: ${target.name}`,
+        body: JSON.stringify({
+          type: "CONQUER_FAIL",
+          message: "Your fleet was defeated in combat. All ships are returning home.",
+          targetName: target.name,
+          targetX: target.x,
+          targetY: target.y,
+        }),
+        category: MessageCategory.CONQUEST,
+        tags: ["conquest", "failed"],
+      });
+      return; // Fleet will be set to RETURNING by the caller
+    }
+
+    // === ATTACKER WON ===
+    console.log(`  Combat won at ${target.name}. Starting conquest.`);
+
+    // If there was an existing planet conquest by a different player, delete it and return their holding fleets
+    if (target.type === SpaceObjectType.PLANET && targetConquest && targetConquest.isActive) {
+      console.log(`  Overturning existing conquest on planet ${target.name} (initiator: ${targetConquest.initiatorId})`);
+      
+      // Delete old conquest record
+      await tx.conquest.delete({
+        where: { id: targetConquest.id },
+      });
+
+      // Send other player's holding fleets returning home
+      const otherHoldingFleets = await tx.fleetMovement.findMany({
+        where: {
+          targetId,
+          status: FleetMovementStatus.HOLDING,
+          userId: { not: userId },
+        },
+      });
+
+      for (const oldFleet of otherHoldingFleets) {
+        const travelDuration = oldFleet.arrivalTime.getTime() - oldFleet.startTime.getTime();
+        const returnArrivalTime = new Date(Date.now() + travelDuration);
+        await tx.fleetMovement.update({
+          where: { id: oldFleet.id },
+          data: {
+            status: FleetMovementStatus.RETURNING,
+            returnArrivalTime,
+          },
+        });
+
+        await createMessage({
+          recipientId: oldFleet.userId,
+          title: `Siege Overturned: ${target.name}`,
+          body: JSON.stringify({
+            type: "CONQUEST_BROKEN",
+            message: `Another player (${userId.slice(0, 5)}) has won a combat at ${target.name} and initiated their own conquest. Your holding fleet has been recalled and is returning home.`,
+            targetName: target.name,
+            targetX: target.x,
+            targetY: target.y,
+          }),
+          category: MessageCategory.CONQUEST,
+          tags: ["conquest", "broken"],
+        });
+      }
+    }
+
+    // Destroy garrison ships on the planet
+    if (target.planet) {
+      await tx.planetShip.deleteMany({
+        where: { planetId: target.planet.id },
+      });
+      console.log(`  Garrison ships destroyed at ${target.name}`);
+    }
+
+    // Consume colony ship (for planet conquests only)
+    if (target.type === SpaceObjectType.PLANET) {
+      const conquestCfg = (gameConfig as any).conquest;
+      if (conquestCfg.colonyShipConsumed) {
+        await tx.fleetShip.updateMany({
+          where: { fleetMovementId: id, type: "COLONY_SHIP" },
+          data: { count: 0 },
+        });
+        console.log(`  Colony ship consumed.`);
+      }
+    }
+
+    // Calculate conquest points required
+    const conquestConfig = (gameConfig as any).conquest;
+    let pointsRequired = conquestConfig.conquestPointsRequired;
+    if (target.type === SpaceObjectType.WORMHOLE && target.wormhole) {
+      pointsRequired = target.wormhole.threatLevel * conquestConfig.conquestPointsRequired * (conquestConfig.wormholeConquestPointsMultiplier || 1);
+    }
+
+    // Create conquest record
+    await tx.conquest.create({
+      data: {
+        spaceObjectId: targetId,
+        initiatorId: userId,
+        conquestPoints: 0,
+        conquestPointsRequired: pointsRequired,
+        lastTickAt: new Date(),
+        startedAt: new Date(),
+        isActive: true,
+      },
+    });
+
+    // Set fleet to HOLDING
+    await tx.fleetMovement.update({
+      where: { id },
+      data: { status: FleetMovementStatus.HOLDING },
+    });
+
+    // Destroy defender's ship queue (if planet)
+    if (target.planet) {
+      const deletedQueues = await tx.shipQueue.deleteMany({
+        where: {
+          planetId: target.planet.id,
+          status: { in: [QueueStatus.PENDING, QueueStatus.BUILDING] },
+        },
+      });
+      if (deletedQueues.count > 0) {
+        console.log(`  Destroyed ${deletedQueues.count} ship queue items for defender.`);
+      }
+    }
+
+    // Send messages
+    await createMessage({
+      recipientId: userId,
+      title: `Conquest Initiated: ${target.name}`,
+      body: JSON.stringify({
+        type: "CONQUEST_STARTED",
+        targetName: target.name,
+        spaceObjectId: targetId,
+        pointsRequired,
+        targetX: target.x,
+        targetY: target.y,
+      }),
+      category: MessageCategory.CONQUEST,
+      tags: ["conquest", "started"],
+    });
+
+    // Notify defender (if owned planet, not SYSTEM)
+    if (target.planet && target.planet.ownerId !== "SYSTEM") {
+      await createMessage({
+        recipientId: target.planet.ownerId,
+        title: `Planet Under Siege: ${target.name}`,
+        body: JSON.stringify({
+          type: "PLANET_UNDER_SIEGE",
+          targetName: target.name,
+          spaceObjectId: targetId,
+          planetId: target.planet.id,
+          attackerId: userId,
+          targetX: target.x,
+          targetY: target.y,
+        }),
+        category: MessageCategory.CONQUEST,
+        tags: ["conquest", "siege"],
+      });
+    }
+  }
+
+  /**
+   * Handle HOLD mission arrival: fleet goes to HOLDING status
+   */
+  private async handleHoldArrival(tx: any, fleet: any) {
+    const { id, targetId, userId } = fleet;
+
+    if (!targetId) {
+      console.log(`  Hold mission ${id} target was destroyed before arrival.`);
+      return; // Will be set to RETURNING by caller
+    }
+
+    const target = await tx.spaceObject.findUnique({ where: { id: targetId } });
+    if (!target) return;
+
+    console.log(`  Fleet ${id} now holding at ${target.name}`);
+
+    await tx.fleetMovement.update({
+      where: { id },
+      data: { status: FleetMovementStatus.HOLDING },
+    });
+
+    await createMessage({
+      recipientId: userId,
+      title: `Fleet Holding: ${target.name}`,
+      body: JSON.stringify({
+        type: "FLEET_HOLDING",
+        targetName: target.name,
+        spaceObjectId: targetId,
+        targetX: target.x,
+        targetY: target.y,
+      }),
+      category: MessageCategory.SYSTEM,
+      tags: ["fleet", "holding"],
+    });
+  }
+
+  /**
+   * Handle ATTACK mission arrival (counter-siege):
+   * If target has active conquest → 50/50 to break the siege
+   * If no active conquest → fleet returns with message
+   */
+  private async handleAttackArrival(tx: any, fleet: any) {
+    const { id, targetId, userId } = fleet;
+
+    if (!targetId) {
+      console.log(`  Attack mission ${id} target was destroyed before arrival.`);
+      return;
+    }
+
+    const target = await tx.spaceObject.findUnique({
+      where: { id: targetId },
+      include: { conquest: { where: { isActive: true } } },
+    });
+
+    if (!target) return;
+
+    const conquest = target.conquest;
+
+    if (!conquest) {
+      console.log(`  No active conquest at ${target.name}. Fleet returning.`);
+      await createMessage({
+        recipientId: userId,
+        title: `Attack: No Hostile Presence`,
+        body: JSON.stringify({
+          type: "ATTACK_NO_TARGET",
+          message: "Your fleet arrived but found no hostile presence to engage.",
+          targetName: target.name,
+          targetX: target.x,
+          targetY: target.y,
+        }),
+        category: MessageCategory.ATTACK,
+        tags: ["attack", "system"],
+      });
+      return; // Will be set to RETURNING by caller
+    }
+
+    // Counter-siege combat: 50/50
+    const counterAttackWon = Math.random() >= 0.5;
+
+    if (!counterAttackWon) {
+      console.log(`  Counter-attack failed at ${target.name}. Fleet returning.`);
+      await createMessage({
+        recipientId: userId,
+        title: `Counter-Attack Failed: ${target.name}`,
+        body: JSON.stringify({
+          type: "COUNTER_ATTACK_FAILED",
+          message: "Your counter-attack was repelled. The siege continues.",
+          targetName: target.name,
+          targetX: target.x,
+          targetY: target.y,
+        }),
+        category: MessageCategory.ATTACK,
+        tags: ["attack", "failed"],
+      });
+      return; // Will be set to RETURNING by caller
+    }
+
+    // === COUNTER-ATTACK SUCCEEDED — Break the siege ===
+    console.log(`  Counter-attack succeeded at ${target.name}! Siege broken.`);
+
+    // Delete conquest record
+    await tx.conquest.delete({ where: { id: conquest.id } });
+
+    // Send all HOLDING fleets at this location back home
+    const holdingFleets = await tx.fleetMovement.findMany({
+      where: {
+        targetId,
+        status: FleetMovementStatus.HOLDING,
+      },
+    });
+
+    for (const holdingFleet of holdingFleets) {
+      const travelDuration = holdingFleet.arrivalTime.getTime() - holdingFleet.startTime.getTime();
+      const returnArrivalTime = new Date(Date.now() + travelDuration);
+
+      await tx.fleetMovement.update({
+        where: { id: holdingFleet.id },
+        data: {
+          status: FleetMovementStatus.RETURNING,
+          returnArrivalTime,
+        },
+      });
+
+      // Notify each holding fleet owner
+      if (holdingFleet.userId !== userId) {
+        await createMessage({
+          recipientId: holdingFleet.userId,
+          title: `Siege Broken: ${target.name}`,
+          body: JSON.stringify({
+            type: "SIEGE_BROKEN",
+            message: "The siege has been broken by a counter-attack. Your fleet is returning home.",
+            targetName: target.name,
+            targetX: target.x,
+            targetY: target.y,
+          }),
+          category: MessageCategory.CONQUEST,
+          tags: ["conquest", "broken"],
+        });
+      }
+    }
+
+    // Notify attacker (counter-attacker)
+    await createMessage({
+      recipientId: userId,
+      title: `Siege Broken: ${target.name}`,
+      body: JSON.stringify({
+        type: "COUNTER_ATTACK_SUCCESS",
+        message: "Your counter-attack was successful! The siege has been broken.",
+        targetName: target.name,
+        targetX: target.x,
+        targetY: target.y,
+      }),
+      category: MessageCategory.CONQUEST,
+      tags: ["conquest", "broken"],
+    });
+
+    // Notify conquest initiator
+    await createMessage({
+      recipientId: conquest.initiatorId,
+      title: `Conquest Lost: ${target.name}`,
+      body: JSON.stringify({
+        type: "CONQUEST_BROKEN",
+        message: "Your conquest has been broken by a counter-attack. All holding fleets are returning.",
+        targetName: target.name,
+        targetX: target.x,
+        targetY: target.y,
+      }),
+      category: MessageCategory.CONQUEST,
+      tags: ["conquest", "lost"],
     });
   }
 
@@ -876,40 +1141,318 @@ export class JobService {
     });
   }
 
-  async processSovereigntyRegeneration() {
+  /**
+   * Process conquest ticks: calculate conquest points for all active conquests
+   */
+  async processConquestTicks() {
     try {
       const conquestConfig = (gameConfig as any).conquest;
-      const maxSovereignty = conquestConfig.maxSovereignty;
-      const regenPerHour = conquestConfig.sovereigntyRegenPerHour;
+      const tickIntervalMs = conquestConfig.conquestTickIntervalMinutes * 60 * 1000;
+      const now = new Date();
 
-      // Find all planets with sovereignty below max
-      const damagedPlanets = await prisma.planet.findMany({
+      // Find all active conquests that are due for a tick
+      const activeConquests = await prisma.conquest.findMany({
         where: {
-          sovereignty: { lt: maxSovereignty },
+          isActive: true,
+          lastTickAt: {
+            lte: new Date(now.getTime() - tickIntervalMs),
+          },
+        },
+        include: {
+          spaceObject: {
+            include: {
+              planet: true,
+              wormhole: true,
+            },
+          },
         },
       });
 
-      for (const planet of damagedPlanets) {
-        const now = new Date();
-        const lastUpdate = planet.sovereigntyUpdatedAt;
-        const hoursElapsed = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
-
-        if (hoursElapsed >= 1) {
-          const regenPoints = Math.floor(hoursElapsed * regenPerHour);
-          if (regenPoints > 0) {
-            const newSovereignty = Math.min(maxSovereignty, planet.sovereignty + regenPoints);
-            await prisma.planet.update({
-              where: { id: planet.id },
-              data: {
-                sovereignty: newSovereignty,
-                sovereigntyUpdatedAt: now,
-              },
-            });
-          }
-        }
+      for (const conquest of activeConquests) {
+        await this.processConquestTick(conquest, now, conquestConfig);
       }
     } catch (error) {
-      console.error("Error processing sovereignty regeneration:", error);
+      console.error("Error processing conquest ticks:", error);
+    }
+  }
+
+  private async processConquestTick(conquest: any, now: Date, conquestConfig: any) {
+    try {
+      await prisma.$transaction(async (tx: any) => {
+        // Re-fetch to ensure freshness
+        const fresh = await tx.conquest.findUnique({ where: { id: conquest.id } });
+        if (!fresh || !fresh.isActive) return;
+
+        const minutesElapsed = (now.getTime() - fresh.lastTickAt.getTime()) / (1000 * 60);
+        if (minutesElapsed < conquestConfig.conquestTickIntervalMinutes) return;
+
+        // Find all HOLDING fleets at this location
+        const holdingFleets = await tx.fleetMovement.findMany({
+          where: {
+            targetId: fresh.spaceObjectId,
+            status: FleetMovementStatus.HOLDING,
+          },
+          include: { ships: true },
+        });
+
+        // Calculate total population from holding fleets
+        let totalPopulation = 0;
+        for (const fleet of holdingFleets) {
+          for (const ship of fleet.ships) {
+            const shipCfg = (shipConfigJson as any)[ship.type];
+            if (shipCfg?.cost?.population) {
+              totalPopulation += shipCfg.cost.population * ship.count;
+            }
+          }
+        }
+
+        let tickPoints = 0;
+        if (totalPopulation >= conquestConfig.minimumPopulationForConquest) {
+          tickPoints = (totalPopulation / conquestConfig.populationPerConquestPoint) * minutesElapsed;
+        }
+
+        let newPoints = fresh.conquestPoints;
+        let isAbandoned = false;
+
+        if (tickPoints === 0) {
+          // Decay
+          const decay = fresh.conquestPointsRequired * (conquestConfig.conquestDecayPercent / 100);
+          newPoints = fresh.conquestPoints - decay;
+          console.log(`  Conquest ${fresh.id}: decay -${decay.toFixed(1)}, now ${newPoints.toFixed(1)}/${fresh.conquestPointsRequired}`);
+          if (newPoints < 0) {
+            isAbandoned = true;
+          }
+        } else {
+          newPoints += tickPoints;
+          console.log(`  Conquest ${fresh.id}: +${tickPoints.toFixed(1)} points (${totalPopulation} pop), now ${newPoints.toFixed(1)}/${fresh.conquestPointsRequired}`);
+        }
+
+        if (isAbandoned) {
+          console.log(`  Conquest ${fresh.id} abandoned due to negative points (siege points < 0).`);
+          
+          // 1. Delete conquest record
+          await tx.conquest.delete({ where: { id: fresh.id } });
+
+          // 2. Return holding fleets
+          const spaceObjectName = conquest.spaceObject.name;
+          const targetX = conquest.spaceObject.x;
+          const targetY = conquest.spaceObject.y;
+
+          const holdingFleets = await tx.fleetMovement.findMany({
+            where: {
+              targetId: fresh.spaceObjectId,
+              status: FleetMovementStatus.HOLDING,
+            },
+          });
+
+          for (const holdingFleet of holdingFleets) {
+            const travelDuration = holdingFleet.arrivalTime.getTime() - holdingFleet.startTime.getTime();
+            const returnArrivalTime = new Date(Date.now() + travelDuration);
+
+            await tx.fleetMovement.update({
+              where: { id: holdingFleet.id },
+              data: {
+                status: FleetMovementStatus.RETURNING,
+                returnArrivalTime,
+              },
+            });
+
+            await createMessage({
+              recipientId: holdingFleet.userId,
+              title: `Siege Collapsed: ${spaceObjectName}`,
+              body: JSON.stringify({
+                type: "CONQUEST_BROKEN",
+                message: `The siege at ${spaceObjectName} has collapsed due to lack of active fleet presence and has been abandoned. Your fleet is returning home.`,
+                targetName: spaceObjectName,
+                targetX,
+                targetY,
+              }),
+              category: MessageCategory.CONQUEST,
+              tags: ["conquest", "abandoned"],
+            });
+          }
+        } else if (newPoints >= fresh.conquestPointsRequired) {
+          await this.completeConquest(tx, fresh, conquest.spaceObject);
+        } else {
+          await tx.conquest.update({
+            where: { id: fresh.id },
+            data: {
+              conquestPoints: newPoints,
+              lastTickAt: now,
+            },
+          });
+        }
+      });
+    } catch (error) {
+      console.error(`Error processing conquest tick for ${conquest.id}:`, error);
+    }
+  }
+
+  private async completeConquest(tx: any, conquest: any, spaceObject: any) {
+    console.log(`  === CONQUEST COMPLETE: ${spaceObject.name} ===`);
+
+    const targetId = conquest.spaceObjectId;
+
+    if (spaceObject.type === SpaceObjectType.PLANET && spaceObject.planet) {
+      const previousOwnerId = spaceObject.planet.ownerId;
+
+      // Transfer ownership
+      await tx.planet.update({
+        where: { id: spaceObject.planet.id },
+        data: { ownerId: conquest.initiatorId },
+      });
+
+      console.log(`  Planet ${spaceObject.name} ownership transferred to ${conquest.initiatorId}`);
+
+      // Destroy defender's in-transit fleets
+      const transitFleets = await tx.fleetMovement.findMany({
+        where: {
+          originId: spaceObject.planet.id,
+          status: { in: [FleetMovementStatus.EN_ROUTE, FleetMovementStatus.RETURNING] },
+        },
+        include: { ships: true },
+      });
+
+      for (const transitFleet of transitFleets) {
+        // Delete fleet ships (destroyed)
+        await tx.fleetShip.deleteMany({
+          where: { fleetMovementId: transitFleet.id },
+        });
+        await tx.fleetMovement.update({
+          where: { id: transitFleet.id },
+          data: { status: FleetMovementStatus.COMPLETED },
+        });
+      }
+
+      if (transitFleets.length > 0) {
+        console.log(`  Destroyed ${transitFleets.length} in-transit fleets belonging to defender.`);
+      }
+
+      // Send conquest success message
+      await createMessage({
+        recipientId: conquest.initiatorId,
+        title: `Planet Conquered: ${spaceObject.name}`,
+        body: JSON.stringify({
+          type: "CONQUEST_COMPLETE",
+          targetName: spaceObject.name,
+          spaceObjectId: targetId,
+          planetId: spaceObject.planet.id,
+          targetX: spaceObject.x,
+          targetY: spaceObject.y,
+        }),
+        category: MessageCategory.CONQUEST,
+        tags: ["conquest", "success"],
+      });
+
+      // Notify defender
+      if (previousOwnerId !== "SYSTEM") {
+        await createMessage({
+          recipientId: previousOwnerId,
+          title: `Planet Lost: ${spaceObject.name}`,
+          body: JSON.stringify({
+            type: "PLANET_LOST",
+            targetName: spaceObject.name,
+            planetId: spaceObject.planet.id,
+            conqueredBy: conquest.initiatorId,
+            targetX: spaceObject.x,
+            targetY: spaceObject.y,
+          }),
+          category: MessageCategory.CONQUEST,
+          tags: ["conquest", "lost"],
+        });
+
+        // Check if defender has any remaining planets
+        const remainingPlanets = await tx.planet.count({
+          where: { ownerId: previousOwnerId },
+        });
+
+        if (remainingPlanets === 0) {
+          console.log(`  Player ${previousOwnerId} has been defeated!`);
+          await tx.user.update({
+            where: { id: previousOwnerId },
+            data: { isDefeated: true, isSetupComplete: false },
+          });
+
+          await createMessage({
+            recipientId: previousOwnerId,
+            title: "Defeat: All Planets Lost",
+            body: JSON.stringify({
+              type: "DEFEATED",
+              message: "You have lost all your planets. Set up a new command center to continue playing.",
+            }),
+            category: MessageCategory.CONQUEST,
+            tags: ["conquest", "defeated"],
+          });
+        }
+      }
+    } else if (spaceObject.type === SpaceObjectType.WORMHOLE) {
+      console.log(`  Wormhole ${spaceObject.name} is closing.`);
+
+      console.log(`  Wormhole ${spaceObject.name} has been closed!`);
+
+      await createMessage({
+        recipientId: conquest.initiatorId,
+        title: `Wormhole Closed: ${spaceObject.name}`,
+        body: JSON.stringify({
+          type: "WORMHOLE_CLOSED",
+          targetName: spaceObject.name,
+          spaceObjectId: targetId,
+          targetX: spaceObject.x,
+          targetY: spaceObject.y,
+        }),
+        category: MessageCategory.CONQUEST,
+        tags: ["conquest", "wormhole"],
+      });
+    }
+
+    // Return all HOLDING fleets at this location
+    const holdingFleets = await tx.fleetMovement.findMany({
+      where: {
+        targetId,
+        status: FleetMovementStatus.HOLDING,
+      },
+    });
+
+    for (const holdingFleet of holdingFleets) {
+      const travelDuration = holdingFleet.arrivalTime.getTime() - holdingFleet.startTime.getTime();
+      const returnArrivalTime = new Date(Date.now() + travelDuration);
+
+      await tx.fleetMovement.update({
+        where: { id: holdingFleet.id },
+        data: {
+          status: FleetMovementStatus.RETURNING,
+          returnArrivalTime,
+        },
+      });
+
+      // Notify fleet owner (if not the initiator, they already got a message)
+      if (holdingFleet.userId !== conquest.initiatorId) {
+        await createMessage({
+          recipientId: holdingFleet.userId,
+          title: `Conquest Complete: ${spaceObject.name}`,
+          body: JSON.stringify({
+            type: "CONQUEST_COMPLETE_PARTICIPANT",
+            targetName: spaceObject.name,
+            spaceObjectId: targetId,
+            message: "The conquest is complete. Your fleet is returning home.",
+          }),
+          category: MessageCategory.CONQUEST,
+          tags: ["conquest", "complete"],
+        });
+      }
+    }
+
+    if (spaceObject.type === SpaceObjectType.WORMHOLE) {
+      await tx.spaceObject.delete({
+        where: { id: targetId },
+      });
+      console.log(`  Wormhole SpaceObject ${targetId} deleted successfully.`);
+    } else {
+      // Mark conquest as inactive
+      await tx.conquest.update({
+        where: { id: conquest.id },
+        data: { isActive: false, conquestPoints: conquest.conquestPointsRequired },
+      });
     }
   }
 }
