@@ -301,10 +301,10 @@ export default function Planets() {
                       )}
                     </div>
 
-                    {/* Attached template recipe banner */}
+                    {/* Attached template banner */}
                     {attachedTemplate && (
                       <div className="mb-4 px-3 py-2 bg-[#00E5FF]/5 border border-[#00E5FF]/15 rounded-lg text-xs font-semibold text-[#00E5FF] flex items-center justify-between gap-2">
-                        <span className="uppercase tracking-wider text-[#00E5FF]/70 text-[11px]">Build Recipe</span>
+                        <span className="uppercase tracking-wider text-[#00E5FF]/70 text-[11px]">Build Template</span>
                         <span className="text-white truncate">{attachedTemplate.name}</span>
                       </div>
                     )}
@@ -514,7 +514,7 @@ export default function Planets() {
             <span>Position</span>
             <span>Sovereignty</span>
             <span>Resources</span>
-            <span>Tags & Recipe</span>
+            <span>Tags & Template</span>
             <span className="text-right">Population</span>
           </div>
           {planets.map((planet) => {
@@ -586,7 +586,7 @@ export default function Planets() {
                   </div>
                 </div>
 
-                {/* Tags and active recipe name */}
+                {/* Tags and active template name */}
                 <div className="flex flex-col gap-1 relative z-10">
                   <div className="flex flex-wrap gap-1">
                     {planet.tags?.map((tag) => (

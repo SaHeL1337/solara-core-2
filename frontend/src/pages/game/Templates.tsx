@@ -270,13 +270,13 @@ export default function Templates() {
           <div className="flex justify-between items-center border-b border-[#2a2e38] pb-3">
             <h1 className="text-xl font-bold text-white tracking-wide uppercase flex items-center gap-2">
               <Wrench className="w-5 h-5 text-[#00E5FF]" />
-              Planet Build Recipes (Templates)
+              Planet Build Templates
             </h1>
             <button
               onClick={() => navigate("/templates/new")}
               className="flex items-center gap-1 px-3 py-1.5 bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF] text-[10px] font-bold uppercase tracking-wider hover:bg-[#00E5FF] hover:text-black transition-all"
             >
-              <Plus className="w-3.5 h-3.5" /> New Recipe
+              <Plus className="w-3.5 h-3.5" /> New Template
             </button>
           </div>
 
@@ -284,7 +284,7 @@ export default function Templates() {
             {userTemplates.length === 0 ? (
               <div className="col-span-2 bg-[#1a1d24] border border-[#2a2e38] p-12 text-center">
                 <Wrench className="w-8 h-8 text-[#2a2e38] mx-auto mb-3" />
-                <p className="text-sm text-[#64748b] uppercase">No recipe templates created yet. Click "New Recipe" above.</p>
+                <p className="text-sm text-[#64748b] uppercase">No templates created yet. Click "New Template" above.</p>
               </div>
             ) : (
               userTemplates.map((template) => {
@@ -339,7 +339,7 @@ export default function Templates() {
                         )}
                       </div>
 
-                      {/* Recipe steps with tiny thumbnails */}
+                      {/* Template steps with tiny thumbnails */}
                       <div className="mt-4 space-y-2">
                         <span className="block text-[8px] font-bold tracking-widest uppercase text-[#64748b]">
                           Build Order ({template.buildings.length} steps)
@@ -361,7 +361,7 @@ export default function Templates() {
                         </div>
                       </div>
 
-                      {/* Recipe fleet target with tiny thumbnails */}
+                      {/* Template fleet target with tiny thumbnails */}
                       <div className="mt-4 space-y-2">
                         <span className="block text-[8px] font-bold tracking-widest uppercase text-[#64748b]">
                           Fleet Target
@@ -400,7 +400,7 @@ export default function Templates() {
           <div className="flex items-center justify-between border-b border-[#2a2e38] pb-3">
             <h2 className="text-sm font-bold text-white tracking-widest uppercase flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-[#00E5FF]" />
-              {id ? "Adjust Build Recipe Template" : "Initialize Planet Recipe Template"}
+              {id ? "Adjust Build Template" : "Initialize Planet Template"}
             </h2>
             <button
               onClick={() => navigate("/templates")}
@@ -412,13 +412,13 @@ export default function Templates() {
 
           {/* Grid Layout: Config panel left, Simulation trace right */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 items-start">
-            {/* Left: Recipe Form configuration */}
+            {/* Left: Template Form configuration */}
             <div className="space-y-6 bg-[#1a1d24] border border-[#2a2e38] p-5">
               {/* Basic Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[9px] font-bold tracking-widest uppercase text-[#64748b] mb-1.5">
-                    Recipe Name
+                    Template Name
                   </label>
                   <input
                     type="text"
@@ -498,7 +498,7 @@ export default function Templates() {
                 {/* Selected Buildings Order list (VERTICAL LIST ONLY WITH DRAG AND DROP & IMAGES) */}
                 <div className="bg-[#0a0b0e] border border-[#2a2e38] p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#64748b]">Recipe Steps (Drag to re-order)</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#64748b]">Template Steps (Drag to re-order)</span>
                     {templateBuildings.length > 0 && (
                       <button
                         onClick={() => setTemplateBuildings([])}
@@ -551,7 +551,7 @@ export default function Templates() {
                     })}
                     {templateBuildings.length === 0 && (
                       <div className="text-center py-8 text-xs text-[#3b4252] italic uppercase">
-                        Recipe contains no building actions. Append buildings above.
+                        Template contains no building actions. Append buildings above.
                       </div>
                     )}
                   </div>
@@ -670,7 +670,7 @@ export default function Templates() {
                     : "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700"
                     }`}
                 >
-                  Save Recipe Template
+                  Save Template
                 </button>
                 <button
                   type="button"
@@ -685,7 +685,7 @@ export default function Templates() {
             {/* Right: Simulation diagnostics panel */}
             <div className="space-y-4 bg-[#111317] border border-[#2a2e38] p-5 lg:sticky lg:top-24">
               <div className="border-b border-[#2a2e38] pb-3 mb-2 flex items-center justify-between">
-                <h3 className="text-xs font-bold text-white uppercase tracking-widest">Recipe Diagnostics</h3>
+                <h3 className="text-xs font-bold text-white uppercase tracking-widest">Template Diagnostics</h3>
                 {simulation.valid ? (
                   <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[8px] font-extrabold uppercase border border-emerald-500/30 shadow-[0_0_8px_rgba(16,185,129,0.2)] animate-pulse">
                     ✓ Valid

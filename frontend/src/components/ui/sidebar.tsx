@@ -42,7 +42,7 @@ export function Sidebar() {
     { icon: Map, label: "Map", path: "/map" },
     { icon: Globe, label: "Planets", path: "/planets" },
     { icon: BookOpen, label: "Techtree", path: "/techtree" },
-    { icon: Wrench, label: "Recipes", path: "/templates" },
+    { icon: Wrench, label: "Templates", path: "/templates" },
     { icon: Tag, label: "Tags", path: "/tags" },
     { icon: Mail, label: "Messages", path: "/messages" },
   ];
@@ -56,7 +56,7 @@ export function Sidebar() {
             Solara<span className="text-[#00E5FF]/80">Core</span>
           </h1>
         </div>
-        
+
         {/* Planet Selector / Sector Info */}
         <PlanetLink />
       </div>
