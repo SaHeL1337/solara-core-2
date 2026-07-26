@@ -22,16 +22,46 @@ export class ConquestService {
                 owner: true
               }
             },
-            wormhole: true
+            wormhole: true,
+            incomingFleets: {
+              where: { status: FleetMovementStatus.HOLDING },
+              include: { ships: true }
+            }
           }
         }
       }
     });
 
+    const conquestConfig = (gameConfig as any).conquest;
+    const populationPerConquestPoint = conquestConfig.populationPerConquestPoint || 10;
+    const minimumPopulation = conquestConfig.minimumPopulationForConquest || 10;
+
     return conquests.map(c => {
       const progress = c.conquestPointsRequired > 0
         ? Math.min(100, Math.round((c.conquestPoints / c.conquestPointsRequired) * 100))
         : 0;
+
+      let totalHoldingPopulation = 0;
+      if (c.spaceObject.incomingFleets) {
+        c.spaceObject.incomingFleets.forEach(f => {
+          f.ships.forEach(s => {
+            const shipCfg = (shipConfigJson as any)[s.type];
+            const populationCost = shipCfg?.cost?.population || 0;
+            totalHoldingPopulation += populationCost * s.count;
+          });
+        });
+      }
+
+      let pointsPerMinute = 0;
+      if (totalHoldingPopulation >= minimumPopulation) {
+        pointsPerMinute = totalHoldingPopulation / populationPerConquestPoint;
+      }
+
+      const remainingPoints = Math.max(0, c.conquestPointsRequired - c.conquestPoints);
+      const estimatedMinutesRemaining = pointsPerMinute > 0
+        ? Math.round(remainingPoints / pointsPerMinute)
+        : -1;
+
       return {
         id: c.id,
         spaceObjectId: c.spaceObjectId,
@@ -46,7 +76,9 @@ export class ConquestService {
         startedAt: c.startedAt,
         ownerId: c.spaceObject.planet?.ownerId,
         ownerName: c.spaceObject.planet?.owner?.displayName || c.spaceObject.planet?.owner?.id || "SYSTEM",
-        threatLevel: c.spaceObject.wormhole?.threatLevel
+        threatLevel: c.spaceObject.wormhole?.threatLevel,
+        totalHoldingPopulation,
+        estimatedMinutesRemaining
       };
     });
   }
