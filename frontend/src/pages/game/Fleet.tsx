@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useGame } from "@/context/GameContext";
 import api from "@/lib/api";
@@ -23,6 +23,7 @@ type ShipInventory = {
 
 export default function Fleet() {
   const { selectedPlanet } = useGame();
+  const selectedPlanetId = selectedPlanet?.id;
   
   const [targetX, setTargetX] = useState<string>("");
   const [targetY, setTargetY] = useState<string>("");
@@ -40,6 +41,8 @@ export default function Fleet() {
   const [dispatchSuccess, setDispatchSuccess] = useState(false);
   const [searchParams] = useSearchParams();
 
+  const lastCoordsRef = useRef<{ x: string; y: string }>({ x: "", y: "" });
+
   useEffect(() => {
     const action = searchParams.get("action");
     const x = searchParams.get("targetX");
@@ -54,43 +57,64 @@ export default function Fleet() {
     if (action === "HOLD") setMissionType("HOLD");
   }, [searchParams]);
 
-  const fetchTarget = useCallback(async () => {
-    if (!selectedPlanet || !targetX || !targetY) return;
+  const fetchTarget = useCallback(async (xVal: string, yVal: string) => {
+    if (!selectedPlanetId || !xVal || !yVal) return;
+    
     setIsFetchingTarget(true);
     setTargetError(null);
-    setTargetInfo(null);
-    setMissionType(null);
+
+    // Only clear missionType if coordinates actually changed
+    const coordsChanged = lastCoordsRef.current.x !== xVal || lastCoordsRef.current.y !== yVal;
+    if (coordsChanged) {
+      setMissionType(null);
+      lastCoordsRef.current = { x: xVal, y: yVal };
+    }
+
     try {
-      const endpoint = `/map/target?x=${targetX}&y=${targetY}&originPlanetId=${selectedPlanet.id}`;
+      const endpoint = `/map/target?x=${xVal}&y=${yVal}&originPlanetId=${selectedPlanetId}`;
       const { data } = await api.get(endpoint);
       setTargetInfo(data.data);
     } catch (err: any) {
       const msg = err.response?.data?.error || "Failed to fetch target";
       setTargetError(msg);
+      setTargetInfo(null);
     } finally {
       setIsFetchingTarget(false);
     }
-  }, [targetX, targetY, selectedPlanet]);
+  }, [selectedPlanetId]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
       if (targetX && targetY) {
-        fetchTarget();
+        fetchTarget(targetX, targetY);
       }
     }, 500);
     return () => clearTimeout(handler);
   }, [targetX, targetY, fetchTarget]);
 
   const fetchShips = useCallback(async () => {
-    if (!selectedPlanet) return;
+    if (!selectedPlanetId) return;
     try {
-      const { data } = await api.get(`/ships/ships?planetId=${selectedPlanet.id}`);
-      setAvailableShips(data.data.available);
-      setCurrentShips(data.data.current);
+      const { data } = await api.get(`/ships/ships?planetId=${selectedPlanetId}`);
+      setAvailableShips(data.data.available || {});
+      const newShips: ShipInventory[] = data.data.current || [];
+      setCurrentShips(newShips);
+
+      // Clamp existing user selection to new ship counts without wiping selection
+      setSelectedShips((prev) => {
+        const next: Record<string, number> = {};
+        for (const [type, qty] of Object.entries(prev)) {
+          if (qty > 0) {
+            const availCount = newShips.find((s) => s.type === type)?.count || 0;
+            next[type] = Math.min(qty, availCount);
+          }
+        }
+        return next;
+      });
     } catch (err) {
       console.error("Failed fetching ships", err);
     }
-  }, [selectedPlanet]);
+  }, [selectedPlanetId]);
 
   useEffect(() => {
     fetchShips();
@@ -159,6 +183,7 @@ export default function Fleet() {
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-white tracking-wide uppercase">Fleet Command</h1>
 
+      {/* 1. Target Coordinates */}
       <div className="bg-[#1a1d24] border border-[#2a2e38] p-4 flex flex-col transition-colors hover:border-[#3b4252]">
         <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-3">
           1. Target Coordinates
@@ -206,6 +231,7 @@ export default function Fleet() {
         </div>
       </div>
 
+      {/* 2. Mission Type */}
       <div className={`bg-[#1a1d24] border border-[#2a2e38] p-4 flex flex-col transition-opacity ${!targetInfo ? 'opacity-50 pointer-events-none' : 'hover:border-[#3b4252]'}`}>
         <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-3">
           2. Mission Type
@@ -274,6 +300,7 @@ export default function Fleet() {
         </div>
       </div>
 
+      {/* 3. Fleet Composition */}
       <div className={`bg-[#1a1d24] border border-[#2a2e38] p-4 flex flex-col transition-opacity ${(!targetInfo || !missionType) ? 'opacity-50 pointer-events-none' : 'hover:border-[#3b4252]'}`}>
         <h2 className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase mb-3">
           3. Fleet Composition
@@ -321,6 +348,7 @@ export default function Fleet() {
         )}
       </div>
 
+      {/* Mission Summary & Dispatch */}
       <div className="bg-[#16181d] border border-[#00E5FF]/30 p-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-col gap-1 items-center md:items-start w-full md:w-auto">
           <div className="text-[11px] font-bold text-[#00E5FF] tracking-widest uppercase">Mission Summary</div>

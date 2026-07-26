@@ -37,8 +37,9 @@ export const getShips = async (userId: string, planetId: string) => {
     include: { researchedNodes: true }
   });
   const researchedNodes = user?.researchedNodes.map(r => r.nodeId) || [];
+  const playerClass = user?.playerClass || null;
 
-  const available = getCalcAvailableShips(shipyardLevel, researchedNodes);
+  const available = getCalcAvailableShips(shipyardLevel, researchedNodes, playerClass);
 
   return {
     available,
@@ -81,6 +82,13 @@ export const queueShips = async (
   const missingTech = config.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
   if (missingTech.length > 0) {
     throw new Error(`Missing required tech: ${missingTech.join(", ")}`);
+  }
+
+  // Class restriction check
+  if (config.allowedClasses && user?.playerClass) {
+    if (!config.allowedClasses.includes(user.playerClass)) {
+      throw new Error(`This ship can only be built by ${config.allowedClasses.join(", ")} class`);
+    }
   }
 
   // Requirement check

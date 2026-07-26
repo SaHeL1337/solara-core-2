@@ -1,5 +1,4 @@
 import shipConfigJson from "../../config/ships.json";
-import { evaluateFormula } from "../buildings/buildings.config.service";
 
 export type ShipConfigItem = {
   name: string;
@@ -14,6 +13,11 @@ export type ShipConfigItem = {
   buildTimeInSeconds: string;
   distancePerSecond: number;
   capacity: number;
+  offense: number;
+  offenseType: "FIGHTER" | "BATTLESHIP";
+  defVsFighter: number;
+  defVsBattleship: number;
+  allowedClasses: string[] | null;
   requiredTech?: string[];
 };
 
@@ -30,6 +34,11 @@ export type CalculatedShipInfo = {
   buildTimeInSeconds: number;
   distancePerSecond: number;
   capacity: number;
+  offense: number;
+  offenseType: "FIGHTER" | "BATTLESHIP";
+  defVsFighter: number;
+  defVsBattleship: number;
+  allowedClasses: string[] | null;
   meetsRequirements: boolean;
   requiredTech?: string[];
   missingTech?: string[];
@@ -77,6 +86,11 @@ export const getShipConfig = (
     ),
     distancePerSecond: config.distancePerSecond,
     capacity: config.capacity,
+    offense: config.offense || 0,
+    offenseType: config.offenseType || "FIGHTER",
+    defVsFighter: config.defVsFighter || 0,
+    defVsBattleship: config.defVsBattleship || 0,
+    allowedClasses: config.allowedClasses || null,
     meetsRequirements: true, // evaluated by caller
     requiredTech: config.requiredTech,
   };
@@ -85,6 +99,7 @@ export const getShipConfig = (
 export const getCalcAvailableShips = (
   shipyardLevel: number,
   researchedNodes: string[] = [],
+  playerClass: string | null = null
 ): Record<string, CalculatedShipInfo> => {
   const availableShips: Record<string, CalculatedShipInfo> = {};
 
@@ -103,6 +118,13 @@ export const getCalcAvailableShips = (
     const missingTech = config.requiredTech?.filter(t => !researchedNodes.includes(t)) || [];
     if (missingTech.length > 0) {
       meetsRequirements = false;
+    }
+
+    // Evaluate class restrictions
+    if (config.allowedClasses && playerClass) {
+      if (!config.allowedClasses.includes(playerClass)) {
+        meetsRequirements = false;
+      }
     }
 
     config.meetsRequirements = meetsRequirements;

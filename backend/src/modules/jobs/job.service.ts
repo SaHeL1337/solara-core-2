@@ -721,27 +721,72 @@ export class JobService {
       }
     }
 
-    // Check if target has garrison (ships)
-    const garrisonShips = target.planet?.ships || [];
-    const hasGarrison = garrisonShips.some((s: any) => s.count > 0);
+    // Gather defender ships (garrison on planet + any holding fleets)
+    const garrisonShips: { type: string; count: number }[] = (target.planet?.ships || [])
+      .filter((s: any) => s.count > 0)
+      .map((s: any) => ({ type: s.type, count: s.count }));
 
-    // Combat resolution: if garrison exists, 50/50 random. If no garrison, auto-win.
+    const holdingFleets = await tx.fleetMovement.findMany({
+      where: { targetId, status: FleetMovementStatus.HOLDING },
+      include: { ships: true },
+    });
+
+    const holdingShips: { type: string; count: number }[] = [];
+    holdingFleets.forEach((hf: any) => {
+      hf.ships.forEach((s: any) => {
+        if (s.count > 0) {
+          holdingShips.push({ type: s.type, count: s.count });
+        }
+      });
+    });
+
+    const defenderShips = [...garrisonShips, ...holdingShips];
+    const attackerShips = (ships || []).map((s: any) => ({ type: s.type, count: s.count }));
+
+    // Combat resolution
     let combatWon = true;
-    if (hasGarrison) {
-      combatWon = Math.random() >= 0.5;
+    let combatResult: any = null;
+
+    if (defenderShips.length > 0) {
+      combatResult = this.resolveTribalWarsCombat(attackerShips, defenderShips);
+      combatWon = combatResult.attackerWon;
+
+      // Update attacker fleet ships
+      for (const [sType, remCount] of Object.entries(combatResult.attackerRemaining)) {
+        await tx.fleetShip.updateMany({
+          where: { fleetMovementId: id, type: sType },
+          data: { count: remCount as number },
+        });
+      }
+
+      // Update defender garrison ships if planet
+      if (target.planet) {
+        for (const [sType, remCount] of Object.entries(combatResult.defenderRemaining)) {
+          const existing = await tx.planetShip.findUnique({
+            where: { planetId_type: { planetId: target.planet.id, type: sType } }
+          });
+          if (existing) {
+            await tx.planetShip.update({
+              where: { id: existing.id },
+              data: { count: remCount as number }
+            });
+          }
+        }
+      }
     }
 
     if (!combatWon) {
       console.log(`  Combat lost at ${target.name}. Fleet retreating.`);
       await createMessage({
         recipientId: userId,
-        title: `Conquest Failed: ${target.name}`,
+        title: `Conquest Defeated: ${target.name}`,
         body: JSON.stringify({
           type: "CONQUER_FAIL",
-          message: "Your fleet was defeated in combat. All ships are returning home.",
+          message: `Your fleet was defeated at ${target.name}. (Attack: ${combatResult?.totalAttackerOffense || 0} vs Def: ${combatResult?.totalDefenderDefense || 0})`,
           targetName: target.name,
           targetX: target.x,
           targetY: target.y,
+          combat: combatResult,
         }),
         category: MessageCategory.CONQUEST,
         tags: ["conquest", "failed"],
@@ -929,9 +974,12 @@ export class JobService {
   }
 
   /**
-   * Handle ATTACK mission arrival (counter-siege):
-   * If target has active conquest → 50/50 to break the siege
-   * If no active conquest → fleet returns with message
+   * Handle ATTACK mission arrival:
+   * 1. Engage garrison + holding fleets in Tribal Wars combat
+   * 2. If attacker wins: plunder target resources up to fleet cargo capacity
+   * 3. Attach looted resources to returning fleet
+   * 4. Break active siege (if target was under conquest)
+   * 5. Send detailed combat reports to attacker, planet owner, and holding players
    */
   private async handleAttackArrival(tx: any, fleet: any) {
     const { id, targetId, userId } = fleet;
@@ -943,125 +991,196 @@ export class JobService {
 
     const target = await tx.spaceObject.findUnique({
       where: { id: targetId },
-      include: { conquest: { where: { isActive: true } } },
+      include: {
+        planet: { include: { owner: true, ships: true } },
+        conquest: { where: { isActive: true } },
+      },
     });
 
     if (!target) return;
 
-    const conquest = target.conquest;
+    console.log(`Executing ATTACK mission at ${target.name}`);
 
-    if (!conquest) {
-      console.log(`  No active conquest at ${target.name}. Fleet returning.`);
-      await createMessage({
-        recipientId: userId,
-        title: `Attack: No Hostile Presence`,
-        body: JSON.stringify({
-          type: "ATTACK_NO_TARGET",
-          message: "Your fleet arrived but found no hostile presence to engage.",
-          targetName: target.name,
-          targetX: target.x,
-          targetY: target.y,
-        }),
-        category: MessageCategory.ATTACK,
-        tags: ["attack", "system"],
-      });
-      return; // Will be set to RETURNING by caller
-    }
+    // 1. Gather all defender ships (planet garrison + holding fleets at target)
+    const garrisonShips: { type: string; count: number }[] = (target.planet?.ships || [])
+      .filter((s: any) => s.count > 0)
+      .map((s: any) => ({ type: s.type, count: s.count }));
 
-    // Counter-siege combat: 50/50
-    const counterAttackWon = Math.random() >= 0.5;
-
-    if (!counterAttackWon) {
-      console.log(`  Counter-attack failed at ${target.name}. Fleet returning.`);
-      await createMessage({
-        recipientId: userId,
-        title: `Counter-Attack Failed: ${target.name}`,
-        body: JSON.stringify({
-          type: "COUNTER_ATTACK_FAILED",
-          message: "Your counter-attack was repelled. The siege continues.",
-          targetName: target.name,
-          targetX: target.x,
-          targetY: target.y,
-        }),
-        category: MessageCategory.ATTACK,
-        tags: ["attack", "failed"],
-      });
-      return; // Will be set to RETURNING by caller
-    }
-
-    // === COUNTER-ATTACK SUCCEEDED — Break the siege ===
-    console.log(`  Counter-attack succeeded at ${target.name}! Siege broken.`);
-
-    // Delete conquest record
-    await tx.conquest.delete({ where: { id: conquest.id } });
-
-    // Send all HOLDING fleets at this location back home
     const holdingFleets = await tx.fleetMovement.findMany({
-      where: {
-        targetId,
-        status: FleetMovementStatus.HOLDING,
-      },
+      where: { targetId, status: FleetMovementStatus.HOLDING },
+      include: { ships: true, user: true },
     });
 
-    for (const holdingFleet of holdingFleets) {
-      const travelDuration = holdingFleet.arrivalTime.getTime() - holdingFleet.startTime.getTime();
-      const returnArrivalTime = new Date(Date.now() + travelDuration);
-
-      await tx.fleetMovement.update({
-        where: { id: holdingFleet.id },
-        data: {
-          status: FleetMovementStatus.RETURNING,
-          returnArrivalTime,
-        },
+    const holdingShips: { type: string; count: number }[] = [];
+    holdingFleets.forEach((hf: any) => {
+      hf.ships.forEach((s: any) => {
+        if (s.count > 0) {
+          holdingShips.push({ type: s.type, count: s.count });
+        }
       });
+    });
 
-      // Notify each holding fleet owner
-      if (holdingFleet.userId !== userId) {
-        await createMessage({
-          recipientId: holdingFleet.userId,
-          title: `Siege Broken: ${target.name}`,
-          body: JSON.stringify({
-            type: "SIEGE_BROKEN",
-            message: "The siege has been broken by a counter-attack. Your fleet is returning home.",
-            targetName: target.name,
-            targetX: target.x,
-            targetY: target.y,
-          }),
-          category: MessageCategory.CONQUEST,
-          tags: ["conquest", "broken"],
+    const defenderShips = [...garrisonShips, ...holdingShips];
+    const attackerShips = (fleet.ships || []).map((s: any) => ({ type: s.type, count: s.count }));
+
+    // 2. Resolve Combat
+    let combatResult: any = null;
+    let attackerWon = true;
+
+    if (defenderShips.length > 0) {
+      combatResult = this.resolveTribalWarsCombat(attackerShips, defenderShips);
+      attackerWon = combatResult.attackerWon;
+
+      // Update attacker remaining ships
+      for (const [sType, remCount] of Object.entries(combatResult.attackerRemaining)) {
+        await tx.fleetShip.updateMany({
+          where: { fleetMovementId: id, type: sType },
+          data: { count: remCount as number },
         });
+      }
+
+      // Update garrison remaining ships
+      if (target.planet) {
+        for (const [sType, remCount] of Object.entries(combatResult.defenderRemaining)) {
+          const existing = await tx.planetShip.findUnique({
+            where: { planetId_type: { planetId: target.planet.id, type: sType } }
+          });
+          if (existing) {
+            await tx.planetShip.update({
+              where: { id: existing.id },
+              data: { count: remCount as number }
+            });
+          }
+        }
+      }
+
+      // Update holding fleets remaining ships
+      for (const hf of holdingFleets) {
+        for (const s of hf.ships) {
+          const rem = Math.floor(s.count * (1 - combatResult.defenderLossRatio));
+          await tx.fleetShip.update({
+            where: { id: s.id },
+            data: { count: rem }
+          });
+        }
+      }
+    } else {
+      // Empty target = auto victory
+      combatResult = {
+        attackerWon: true,
+        attackerRemaining: attackerShips.reduce((acc: any, s: any) => ({ ...acc, [s.type]: s.count }), {}),
+        defenderRemaining: {},
+        totalAttackerOffense: attackerShips.reduce((acc: number, s: any) => acc + ((shipConfigJson as any)[s.type]?.offense || 0) * s.count, 0),
+        totalDefenderDefense: 0,
+        attackerLossRatio: 0,
+        defenderLossRatio: 1,
+      };
+    }
+
+    // 3. Looting Resources if Attacker Won
+    const lootedResources = { titanium: 0, silicate: 0, isotope: 0 };
+
+    if (attackerWon) {
+      // Calculate remaining total cargo capacity of surviving attacking ships
+      let remainingCapacity = 0;
+      for (const [sType, remCount] of Object.entries(combatResult.attackerRemaining)) {
+        const cfg = (shipConfigJson as any)[sType];
+        if (cfg && (remCount as number) > 0) {
+          remainingCapacity += (cfg.capacity || 0) * (remCount as number);
+        }
+      }
+
+      if (remainingCapacity > 0) {
+        // Sync spaceObject resources if planet
+        if (target.planet) {
+          await ResourceService.sync(target.planet.id, tx);
+        }
+
+        const currentTarget = await tx.spaceObject.findUnique({ where: { id: targetId } });
+        if (currentTarget) {
+          const totalAvail = Math.floor(currentTarget.titanium + currentTarget.silicate + currentTarget.isotope);
+          const lootAmount = Math.min(remainingCapacity, totalAvail);
+
+          if (totalAvail > 0 && lootAmount > 0) {
+            const ratio = lootAmount / totalAvail;
+            lootedResources.titanium = Math.floor(currentTarget.titanium * ratio);
+            lootedResources.silicate = Math.floor(currentTarget.silicate * ratio);
+            lootedResources.isotope = Math.floor(currentTarget.isotope * ratio);
+
+            // Deduct from space object
+            await tx.spaceObject.update({
+              where: { id: targetId },
+              data: {
+                titanium: Math.max(0, currentTarget.titanium - lootedResources.titanium),
+                silicate: Math.max(0, currentTarget.silicate - lootedResources.silicate),
+                isotope: Math.max(0, currentTarget.isotope - lootedResources.isotope),
+              },
+            });
+
+            // Create FleetResource items for returning fleet
+            for (const [resType, amount] of Object.entries(lootedResources)) {
+              if (amount > 0) {
+                await (tx as any).fleetResource.create({
+                  data: {
+                    fleetMovementId: id,
+                    type: resType.toUpperCase(),
+                    amount,
+                  },
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // If active siege existed on target, break it
+      if (target.conquest && target.conquest.length > 0 && target.conquest[0].isActive) {
+        await tx.conquest.delete({ where: { id: target.conquest[0].id } });
+        for (const hf of holdingFleets) {
+          const travelDuration = hf.arrivalTime.getTime() - hf.startTime.getTime();
+          const returnArrivalTime = new Date(Date.now() + travelDuration);
+          await tx.fleetMovement.update({
+            where: { id: hf.id },
+            data: { status: FleetMovementStatus.RETURNING, returnArrivalTime },
+          });
+        }
       }
     }
 
-    // Notify attacker (counter-attacker)
-    await createMessage({
-      recipientId: userId,
-      title: `Siege Broken: ${target.name}`,
-      body: JSON.stringify({
-        type: "COUNTER_ATTACK_SUCCESS",
-        message: "Your counter-attack was successful! The siege has been broken.",
-        targetName: target.name,
-        targetX: target.x,
-        targetY: target.y,
-      }),
-      category: MessageCategory.CONQUEST,
-      tags: ["conquest", "broken"],
-    });
+    // 4. Send Combat Messages to All Participants
+    const participantIds = new Set<string>();
+    participantIds.add(userId); // Attacker
+    if (target.planet?.ownerId) participantIds.add(target.planet.ownerId); // Defender planet owner
+    holdingFleets.forEach((hf: any) => participantIds.add(hf.userId)); // Holding players
 
-    // Notify conquest initiator
-    await createMessage({
-      recipientId: conquest.initiatorId,
-      title: `Conquest Lost: ${target.name}`,
-      body: JSON.stringify({
-        type: "CONQUEST_BROKEN",
-        message: "Your conquest has been broken by a counter-attack. All holding fleets are returning.",
-        targetName: target.name,
-        targetX: target.x,
-        targetY: target.y,
-      }),
-      category: MessageCategory.CONQUEST,
-      tags: ["conquest", "lost"],
-    });
+    for (const participantId of participantIds) {
+      const isAttacker = participantId === userId;
+      const title = attackerWon
+        ? isAttacker ? `Battle Victory: ${target.name}` : `Defeat at ${target.name}`
+        : isAttacker ? `Battle Defeat: ${target.name}` : `Defense Victorious: ${target.name}`;
+
+      await createMessage({
+        recipientId: participantId,
+        title,
+        body: JSON.stringify({
+          type: "COMBAT_REPORT",
+          targetName: target.name,
+          targetX: target.x,
+          targetY: target.y,
+          attackerWon,
+          isAttacker,
+          totalAttackerOffense: combatResult.totalAttackerOffense,
+          totalDefenderDefense: combatResult.totalDefenderDefense,
+          attackerShipsBefore: attackerShips,
+          attackerShipsAfter: combatResult.attackerRemaining,
+          defenderShipsBefore: defenderShips,
+          defenderShipsAfter: combatResult.defenderRemaining,
+          lootedResources,
+        }),
+        category: MessageCategory.ATTACK,
+        tags: ["attack", "combat", attackerWon ? "victory" : "defeat"],
+      });
+    }
   }
 
   private async handleFleetArrivalAtHome(fleet: any) {
@@ -1454,6 +1573,98 @@ export class JobService {
         data: { isActive: false, conquestPoints: conquest.conquestPointsRequired },
       });
     }
+  }
+
+  /**
+   * Tribal Wars style weighted fleet combat calculation
+   */
+  private resolveTribalWarsCombat(
+    attackerFleet: { type: string; count: number }[],
+    defenderFleet: { type: string; count: number }[]
+  ) {
+    let attackFighter = 0;
+    let attackBattleship = 0;
+
+    for (const s of attackerFleet) {
+      if (s.count <= 0) continue;
+      const cfg = (shipConfigJson as any)[s.type];
+      if (!cfg) continue;
+      const off = (cfg.offense || 0) * s.count;
+      if (cfg.offenseType === "BATTLESHIP") {
+        attackBattleship += off;
+      } else {
+        attackFighter += off;
+      }
+    }
+
+    const totalAttack = attackFighter + attackBattleship;
+
+    if (totalAttack === 0) {
+      const defRem: Record<string, number> = {};
+      defenderFleet.forEach(s => { defRem[s.type] = s.count; });
+      return {
+        attackerWon: false,
+        attackerRemaining: {},
+        defenderRemaining: defRem,
+        totalAttackerOffense: 0,
+        totalDefenderDefense: 0,
+        attackerLossRatio: 1,
+        defenderLossRatio: 0,
+      };
+    }
+
+    let defVsFighter = 0;
+    let defVsBattleship = 0;
+
+    for (const s of defenderFleet) {
+      if (s.count <= 0) continue;
+      const cfg = (shipConfigJson as any)[s.type];
+      if (!cfg) continue;
+      defVsFighter += (cfg.defVsFighter || 0) * s.count;
+      defVsBattleship += (cfg.defVsBattleship || 0) * s.count;
+    }
+
+    const fighterRatio = attackFighter / totalAttack;
+    const battleshipRatio = attackBattleship / totalAttack;
+    const weightedDefense = (defVsFighter * fighterRatio) + (defVsBattleship * battleshipRatio);
+
+    let attackerWon = false;
+    let attackerLossRatio = 1;
+    let defenderLossRatio = 1;
+
+    if (totalAttack > weightedDefense) {
+      attackerWon = true;
+      defenderLossRatio = 1;
+      attackerLossRatio = Math.min(1, Math.pow(weightedDefense / totalAttack, 1.5));
+    } else if (weightedDefense > 0) {
+      attackerWon = false;
+      attackerLossRatio = 1;
+      defenderLossRatio = Math.min(1, Math.pow(totalAttack / weightedDefense, 1.5));
+    } else {
+      attackerWon = true;
+      defenderLossRatio = 1;
+      attackerLossRatio = 0;
+    }
+
+    const attackerRemaining: Record<string, number> = {};
+    attackerFleet.forEach(s => {
+      attackerRemaining[s.type] = Math.floor(s.count * (1 - attackerLossRatio));
+    });
+
+    const defenderRemaining: Record<string, number> = {};
+    defenderFleet.forEach(s => {
+      defenderRemaining[s.type] = Math.floor(s.count * (1 - defenderLossRatio));
+    });
+
+    return {
+      attackerWon,
+      attackerRemaining,
+      defenderRemaining,
+      totalAttackerOffense: Math.round(totalAttack),
+      totalDefenderDefense: Math.round(weightedDefense),
+      attackerLossRatio,
+      defenderLossRatio,
+    };
   }
 }
 

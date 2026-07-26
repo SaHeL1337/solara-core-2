@@ -1,10 +1,10 @@
 {
   "MINER": {
     "name": "Miner",
-    "description": "Used for mining asteroids.",
+    "description": "Utility vessel designed to extract resources from asteroid fields.",
     "cost": {
-      "titanium": 5,
-      "silicate": 2,
+      "titanium": 500,
+      "silicate": 200,
       "isotope": 0,
       "population": 1
     },
@@ -12,15 +12,20 @@
       "SHIPYARD": 1
     },
     "buildTimeInSeconds": "15 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 0.5,
-    "capacity": 1000
+    "distancePerSecond": 1.0,
+    "capacity": 1000,
+    "offense": 0,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 10,
+    "defVsBattleship": 10,
+    "allowedClasses": null
   },
-  "FIGHTER": {
-    "name": "Fighter",
-    "description": "Light combat ship for planetary defense and basic attacks.",
+  "SCANNER": {
+    "name": "Scanner Probe",
+    "description": "Fast and stealthy reconnaissance probe used to scan coordinates.",
     "cost": {
-      "titanium": 5,
-      "silicate": 2,
+      "titanium": 100,
+      "silicate": 50,
       "isotope": 0,
       "population": 1
     },
@@ -28,62 +33,17 @@
       "SHIPYARD": 1
     },
     "buildTimeInSeconds": "10 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 1,
-    "capacity": 100
-  },
-  "CRUISER": {
-    "name": "Cruiser",
-    "description": "Heavy combat ship.",
-    "cost": {
-      "titanium": 2000,
-      "silicate": 1000,
-      "isotope": 200,
-      "population": 5
-    },
-    "requirements": {
-      "SHIPYARD": 4
-    },
-    "requiredTech": ["COMMANDER_ATTACK_1"],
-    "buildTimeInSeconds": "600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 8,
-    "capacity": 1000
-  },
-  "BATTLESHIP": {
-    "name": "Battleship",
-    "description": "Massive capital ship that can dominate space battles.",
-    "cost": {
-      "titanium": 8000,
-      "silicate": 4000,
-      "isotope": 1000,
-      "population": 20
-    },
-    "requirements": {
-      "SHIPYARD": 7
-    },
-    "requiredTech": ["BASTION_SHIELD_1"],
-    "buildTimeInSeconds": "2400 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 20,
-    "capacity": 5000
-  },
-  "BOMBER": {
-    "name": "Bomber",
-    "description": "Breaks shields of enemy planets and deals heavy damage to structures.",
-    "cost": {
-      "titanium": 5000,
-      "silicate": 5000,
-      "isotope": 5000,
-      "population": 20
-    },
-    "requirements": {
-      "SHIPYARD": 8
-    },
-    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 5,
-    "capacity": 200
+    "distancePerSecond": 10.0,
+    "capacity": 0,
+    "offense": 0,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 1,
+    "defVsBattleship": 1,
+    "allowedClasses": null
   },
   "COLONY_SHIP": {
     "name": "Colony Ship",
-    "description": "Massive vessel carrying colonists and military forces. Used to conquer enemy planets and colonize uninhabited worlds.",
+    "description": "Massive vessel carrying heavy colonization modules. Required to conquer planets.",
     "cost": {
       "titanium": 10000,
       "silicate": 10000,
@@ -93,24 +53,118 @@
     "requirements": {
       "SHIPYARD": 3
     },
-    "buildTimeInSeconds": "3600 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 5,
-    "capacity": 20000
+    "buildTimeInSeconds": "1800 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 2.0,
+    "capacity": 20000,
+    "offense": 0,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 100,
+    "defVsBattleship": 100,
+    "allowedClasses": null
   },
-  "SCANNER": {
-    "name": "Scanner Probe",
-    "description": "Fast and stealthy ship used to scan enemy planets for intel.",
+  "FIGHTER": {
+    "name": "Fighter",
+    "description": "Basic offensive strike craft. Effective against Sentinels, but vulnerable to Bulwarks.",
     "cost": {
-      "titanium": 1000,
-      "silicate": 500,
-      "isotope": 0,
+      "titanium": 600,
+      "silicate": 300,
+      "isotope": 50,
       "population": 1
     },
     "requirements": {
-      "SHIPYARD": 2
+      "SHIPYARD": 1
     },
-    "buildTimeInSeconds": "60 * (10 / (9 + shipyardLevel))",
-    "distancePerSecond": 0.2,
-    "capacity": 0
+    "buildTimeInSeconds": "30 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 4.0,
+    "capacity": 50,
+    "offense": 60,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 10,
+    "defVsBattleship": 10,
+    "allowedClasses": null
+  },
+  "SENTINEL": {
+    "name": "Sentinel",
+    "description": "Basic defense ship with specialized anti-capital weaponry. Highly effective against Battleships.",
+    "cost": {
+      "titanium": 400,
+      "silicate": 500,
+      "isotope": 50,
+      "population": 1
+    },
+    "requirements": {
+      "SHIPYARD": 1
+    },
+    "buildTimeInSeconds": "30 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 3.0,
+    "capacity": 30,
+    "offense": 15,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 25,
+    "defVsBattleship": 65,
+    "allowedClasses": null
+  },
+  "BATTLESHIP": {
+    "name": "Battleship",
+    "description": "Premium fast attack warship. High speed and devastating firepower against Bulwarks.",
+    "cost": {
+      "titanium": 3000,
+      "silicate": 1500,
+      "isotope": 500,
+      "population": 4
+    },
+    "requirements": {
+      "SHIPYARD": 4
+    },
+    "buildTimeInSeconds": "180 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 8.0,
+    "capacity": 400,
+    "offense": 300,
+    "offenseType": "BATTLESHIP",
+    "defVsFighter": 40,
+    "defVsBattleship": 30,
+    "allowedClasses": ["Commander"]
+  },
+  "BULWARK": {
+    "name": "Bulwark",
+    "description": "Premium defensive cruiser. Heavy armor specifically engineered to block basic Fighter strikes.",
+    "cost": {
+      "titanium": 1200,
+      "silicate": 2400,
+      "isotope": 400,
+      "population": 3
+    },
+    "requirements": {
+      "SHIPYARD": 4
+    },
+    "buildTimeInSeconds": "150 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 2.5,
+    "capacity": 100,
+    "offense": 40,
+    "offenseType": "FIGHTER",
+    "defVsFighter": 180,
+    "defVsBattleship": 80,
+    "allowedClasses": ["Bastion"]
+  },
+  "DREADNOUGHT": {
+    "name": "Dreadnought",
+    "description": "Fast premium defense warship. High velocity defense interception with superior specs across the board.",
+    "cost": {
+      "titanium": 4000,
+      "silicate": 4000,
+      "isotope": 1200,
+      "population": 6
+    },
+    "requirements": {
+      "SHIPYARD": 6
+    },
+    "buildTimeInSeconds": "360 * (10 / (9 + shipyardLevel))",
+    "distancePerSecond": 7.0,
+    "capacity": 200,
+    "offense": 150,
+    "offenseType": "BATTLESHIP",
+    "defVsFighter": 240,
+    "defVsBattleship": 240,
+    "allowedClasses": ["Bastion"]
   }
 }

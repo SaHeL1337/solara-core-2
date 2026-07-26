@@ -484,6 +484,95 @@ function MessageBody({ body }: { body: string }) {
       );
     }
 
+    if (data.type === "COMBAT_REPORT") {
+      const isVictorious = (data.isAttacker && data.attackerWon) || (!data.isAttacker && !data.attackerWon);
+
+      return (
+        <div className="space-y-4">
+          <div className="flex justify-between items-start gap-4">
+            <p className={`border-l-2 pl-3 py-1 flex-1 font-bold ${
+              isVictorious ? "border-emerald-500 bg-emerald-500/5 text-emerald-300" : "border-red-500 bg-red-500/5 text-red-300"
+            }`}>
+              {isVictorious ? "VICTORY" : "DEFEAT"} — Battle at <span className="underline">{data.targetName}</span>
+            </p>
+            {data.targetX !== undefined && data.targetY !== undefined && (
+              <Link
+                to={`/map?x=${data.targetX}&y=${data.targetY}`}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30 hover:bg-[#00E5FF]/20 transition-all font-bold text-[10px] uppercase tracking-widest"
+              >
+                <MapIcon className="w-3.5 h-3.5" /> Loc: [{data.targetX}, {data.targetY}]
+              </Link>
+            )}
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            {/* Attacker Stats */}
+            <div className="bg-[#1a1d24] border border-[#2a2e38] p-4">
+              <div className="text-xs font-bold text-red-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" /> Attacker Fleet (Offense: {formatNumber(data.totalAttackerOffense || 0)})
+              </div>
+              <div className="space-y-1.5 font-mono text-xs">
+                {(data.attackerShipsBefore || []).map((s: any) => {
+                  const after = (data.attackerShipsAfter || {})[s.type] ?? s.count;
+                  return (
+                    <div key={s.type} className="flex justify-between items-center bg-[#16181d] p-2 border border-[#1e2028]">
+                      <span className="text-[#94a3b8] uppercase font-bold">{s.type}</span>
+                      <span>
+                        <span className="text-white font-bold">{after}</span>
+                        <span className="text-[#64748b] ml-1">/ {s.count}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Defender Stats */}
+            <div className="bg-[#1a1d24] border border-[#2a2e38] p-4">
+              <div className="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" /> Defender Fleet (Defense: {formatNumber(data.totalDefenderDefense || 0)})
+              </div>
+              <div className="space-y-1.5 font-mono text-xs">
+                {data.defenderShipsBefore?.length === 0 ? (
+                  <div className="text-[#64748b] italic py-2">No defending garrison or holding fleets</div>
+                ) : (
+                  (data.defenderShipsBefore || []).map((s: any, idx: number) => {
+                    const after = (data.defenderShipsAfter || {})[s.type] ?? 0;
+                    return (
+                      <div key={`${s.type}-${idx}`} className="flex justify-between items-center bg-[#16181d] p-2 border border-[#1e2028]">
+                        <span className="text-[#94a3b8] uppercase font-bold">{s.type}</span>
+                        <span>
+                          <span className="text-white font-bold">{after}</span>
+                          <span className="text-[#64748b] ml-1">/ {s.count}</span>
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Looted Resources (if any) */}
+          {data.lootedResources && Object.values(data.lootedResources).some((v: any) => v > 0) && (
+            <div className="bg-[#16181d] border border-[#00E5FF]/20 p-4">
+              <div className="text-xs font-bold text-[#00E5FF] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <Pickaxe className="w-3.5 h-3.5" /> Looted Resources (Carried by Attacker)
+              </div>
+              <div className="grid grid-cols-3 gap-3 font-mono text-xs">
+                {Object.entries(data.lootedResources).map(([res, amount]) => (
+                  <div key={res} className="bg-[#1a1d24] border border-[#2a2e38] p-2 flex items-center justify-between">
+                    <span className="text-[#64748b] uppercase font-bold">{res}</span>
+                    <span className="text-[#00E5FF] font-bold">+{formatNumber(amount as number)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     if ([
       "CONQUER_FAIL", "CONQUEST_STARTED", "PLANET_UNDER_SIEGE", "FLEET_HOLDING",
       "ATTACK_NO_TARGET", "COUNTER_ATTACK_FAILED", "COUNTER_ATTACK_SUCCESS",
